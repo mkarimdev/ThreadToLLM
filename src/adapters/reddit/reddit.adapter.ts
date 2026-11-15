@@ -167,6 +167,14 @@ export class RedditAdapter implements PlatformAdapter {
       el.querySelector('.md');
 
     let content = this.extractTextContent(commentSlot, el);
+    const mediaUrl = this.extractCommentMedia(el);
+    if (mediaUrl) {
+      if (!content) {
+        content = mediaUrl;
+      } else if (!content.includes(mediaUrl)) {
+        content = `${content}\n\n${mediaUrl}`;
+      }
+    }
 
     const isExplicitlyDeleted =
       el.hasAttribute('deleted') ||
@@ -202,6 +210,97 @@ export class RedditAdapter implements PlatformAdapter {
       ...(isOp ? { isOp: true } : {}),
       ...(isDeleted ? { isDeleted: true } : {}),
     };
+  }
+
+  private isAvatarOrIgnoredElement(mediaEl: Element, commentEl: Element): boolean {
+    if (mediaEl.closest('shreddit-comment') !== commentEl) {
+      return true;
+    }
+
+    const alt = mediaEl.getAttribute('alt');
+    if (alt && /avatar/i.test(alt)) {
+      return true;
+    }
+
+    const ariaLabel = mediaEl.getAttribute('aria-label');
+    if (ariaLabel && /avatar/i.test(ariaLabel)) {
+      return true;
+    }
+
+    let curr: Element | null = mediaEl;
+    while (curr && curr !== commentEl) {
+      const slot = curr.getAttribute('slot');
+      if (
+        slot === 'avatar' ||
+        slot === 'authorAvatar' ||
+        slot === 'authorName' ||
+        slot === 'author' ||
+        slot === 'flair' ||
+        slot === 'user-icon' ||
+        slot === 'credit-bar' ||
+        slot === 'action-row' ||
+        slot === 'actions'
+      ) {
+        return true;
+      }
+
+      const tagName = curr.tagName.toLowerCase();
+      if (
+        tagName === 'shreddit-avatar' ||
+        tagName === 'shreddit-comment-action-row' ||
+        tagName === 'button'
+      ) {
+        return true;
+      }
+
+      const testId = curr.getAttribute('data-testid');
+      if (testId && /avatar/i.test(testId)) {
+        return true;
+      }
+
+      const className = curr.className;
+      if (
+        typeof className === 'string' &&
+        /(?:^|\s|-|_)(avatar|user-icon|flair)(?:$|\s|-|_)/i.test(className)
+      ) {
+        return true;
+      }
+
+      curr = curr.parentElement;
+    }
+
+    return false;
+  }
+
+  private extractCommentMedia(commentEl: Element): string | undefined {
+    const mediaEls = Array.from(commentEl.querySelectorAll('img, faceplate-img'));
+    if (mediaEls.length === 0) {
+      return undefined;
+    }
+
+    const mediaUrls: string[] = [];
+    for (const mediaEl of mediaEls) {
+      if (this.isAvatarOrIgnoredElement(mediaEl, commentEl)) {
+        continue;
+      }
+
+      let src = mediaEl.getAttribute('src');
+      if (!src || src.startsWith('data:')) {
+        src = mediaEl.getAttribute('data-src');
+      }
+
+      if (src && !mediaUrls.includes(src)) {
+        mediaUrls.push(src);
+      }
+    }
+
+    if (mediaUrls.length === 0) {
+      return undefined;
+    }
+    if (mediaUrls.length === 1) {
+      return mediaUrls[0];
+    }
+    return mediaUrls.join('\n');
   }
 
   private findPostElement(domRoot: HTMLElement | Document | Element): Element | null {

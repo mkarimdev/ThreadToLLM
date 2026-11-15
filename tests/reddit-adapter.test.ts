@@ -18,6 +18,13 @@ describe('RedditAdapter', () => {
   let partialFaceplateFixture: HTMLDivElement;
   let partialCommentCountFixture: HTMLDivElement;
   let fullyHydratedFixture: HTMLDivElement;
+  let commentMemeOnlyFixture: HTMLDivElement;
+  let commentTextAndMediaFixture: HTMLDivElement;
+  let commentWithAvatarFixture: HTMLDivElement;
+  let commentGifEmbedFixture: HTMLDivElement;
+  let commentMediaTreeIsolationFixture: HTMLDivElement;
+  let commentMultipleMediaFixture: HTMLDivElement;
+  let commentActionRowIconsFixture: HTMLDivElement;
 
   beforeAll(() => {
     adapter = new RedditAdapter();
@@ -229,6 +236,100 @@ describe('RedditAdapter', () => {
         <div slot="comment"><p>Only comment</p></div>
       </shreddit-comment>
     `;
+
+    commentMemeOnlyFixture = document.createElement('div');
+    commentMemeOnlyFixture.innerHTML = `
+      <shreddit-post id="t3_meme_post" post-title="Meme Thread" author="op_user" permalink="/r/memes/comments/1">
+      </shreddit-post>
+      <shreddit-comment thingid="c_meme_only" author="amr3k" score="14" depth="0">
+        <div slot="comment">
+          <img src="https://i.redd.it/meme123.jpg" alt="funny meme" />
+        </div>
+      </shreddit-comment>
+    `;
+
+    commentTextAndMediaFixture = document.createElement('div');
+    commentTextAndMediaFixture.innerHTML = `
+      <shreddit-post id="t3_text_media_post" post-title="Tech Thread" author="op_user" permalink="/r/tech/comments/2">
+      </shreddit-post>
+      <shreddit-comment thingid="c_text_media" author="architect_bob" score="25" depth="0">
+        <div slot="comment">
+          <p>Here is the architectural diagram for the new flow.</p>
+          <faceplate-img src="https://preview.redd.it/diagram.png"></faceplate-img>
+        </div>
+      </shreddit-comment>
+    `;
+
+    commentWithAvatarFixture = document.createElement('div');
+    commentWithAvatarFixture.innerHTML = `
+      <shreddit-post id="t3_avatar_post" post-title="Avatar Thread" author="op_user" permalink="/r/tech/comments/3">
+      </shreddit-post>
+      <shreddit-comment thingid="c_avatar_only" author="avatar_fan" score="7" depth="0">
+        <div slot="avatar">
+          <shreddit-avatar>
+            <faceplate-img src="https://styles.redditmedia.com/t5_xyz/avatar.png"></faceplate-img>
+          </shreddit-avatar>
+        </div>
+        <div slot="comment">
+          <p>Valid comment text without any media attached.</p>
+        </div>
+      </shreddit-comment>
+    `;
+
+    commentGifEmbedFixture = document.createElement('div');
+    commentGifEmbedFixture.innerHTML = `
+      <shreddit-post id="t3_gif_post" post-title="GIF Thread" author="op_user" permalink="/r/reactions/comments/4">
+      </shreddit-post>
+      <shreddit-comment thingid="c_gif" author="reaction_poster" score="19" depth="0">
+        <shreddit-media-lightbox-listener>
+          <img src="https://media.giphy.com/media/xyz123/giphy.gif" />
+        </shreddit-media-lightbox-listener>
+      </shreddit-comment>
+    `;
+
+    commentMediaTreeIsolationFixture = document.createElement('div');
+    commentMediaTreeIsolationFixture.innerHTML = `
+      <shreddit-post id="t3_tree_post" post-title="Tree Thread" author="op_user" permalink="/r/tree/comments/5">
+      </shreddit-post>
+      <shreddit-comment thingid="c_parent" author="parent_author" score="30" depth="0">
+        <div slot="comment">
+          <p>Parent comment without images.</p>
+        </div>
+        <shreddit-comment thingid="c_child" author="child_author" score="12" depth="1">
+          <div slot="comment">
+            <img src="https://i.redd.it/child_meme.png" />
+          </div>
+        </shreddit-comment>
+      </shreddit-comment>
+    `;
+
+    commentMultipleMediaFixture = document.createElement('div');
+    commentMultipleMediaFixture.innerHTML = `
+      <shreddit-post id="t3_multi_post" post-title="Multi Media Thread" author="op_user" permalink="/r/gallery/comments/6">
+      </shreddit-post>
+      <shreddit-comment thingid="c_multi" author="gallery_commenter" score="11" depth="0">
+        <div slot="comment">
+          <p>Double reaction:</p>
+          <img src="https://i.redd.it/img1.png" />
+          <faceplate-img src="https://i.redd.it/img2.png"></faceplate-img>
+        </div>
+      </shreddit-comment>
+    `;
+
+    commentActionRowIconsFixture = document.createElement('div');
+    commentActionRowIconsFixture.innerHTML = `
+      <shreddit-post id="t3_action_post" post-title="Action Post" author="op_user" permalink="/r/action/comments/7">
+      </shreddit-post>
+      <shreddit-comment thingid="c_actions" author="action_user" score="5" depth="0">
+        <div slot="comment">
+          <p>Comment body text.</p>
+        </div>
+        <shreddit-comment-action-row>
+          <button><img src="https://reddit.com/icons/upvote.svg" /></button>
+          <button><faceplate-img src="https://reddit.com/icons/share.svg"></faceplate-img></button>
+        </shreddit-comment-action-row>
+      </shreddit-comment>
+    `;
   });
 
   describe('Post metadata extraction', () => {
@@ -384,6 +485,71 @@ describe('RedditAdapter', () => {
 
       expect(doc.metadata.extractedCount).toBe(1);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+  });
+
+  describe('Comment media and meme image extraction', () => {
+    it('formats image URL as comment content when comment contains only an image (meme reply)', () => {
+      const doc = adapter.extract(commentMemeOnlyFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].author).toBe('amr3k');
+      expect(doc.comments[0].score).toBe(14);
+      expect(doc.comments[0].content).toBe('https://i.redd.it/meme123.jpg');
+    });
+
+    it('appends image URL after text block when comment contains both text and an embedded image', () => {
+      const doc = adapter.extract(commentTextAndMediaFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].author).toBe('architect_bob');
+      expect(doc.comments[0].content).toBe(
+        'Here is the architectural diagram for the new flow.\n\nhttps://preview.redd.it/diagram.png'
+      );
+    });
+
+    it('strictly ignores author avatars and never extracts avatar URLs as comment media', () => {
+      const doc = adapter.extract(commentWithAvatarFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].author).toBe('avatar_fan');
+      expect(doc.comments[0].content).toBe('Valid comment text without any media attached.');
+      expect(doc.comments[0].content).not.toContain('avatar.png');
+    });
+
+    it('extracts GIF embeds from <shreddit-media-lightbox-listener> or media wrappers', () => {
+      const doc = adapter.extract(commentGifEmbedFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].author).toBe('reaction_poster');
+      expect(doc.comments[0].content).toBe('https://media.giphy.com/media/xyz123/giphy.gif');
+    });
+
+    it('isolates comment media to the containing comment and does not leak child media into parent', () => {
+      const doc = adapter.extract(commentMediaTreeIsolationFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].content).toBe('Parent comment without images.');
+      expect(doc.comments[0].replies).toHaveLength(1);
+      expect(doc.comments[0].replies[0].content).toBe('https://i.redd.it/child_meme.png');
+    });
+
+    it('extracts multiple media URLs and joins them when multiple images exist in a comment', () => {
+      const doc = adapter.extract(commentMultipleMediaFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].content).toContain('Double reaction:');
+      expect(doc.comments[0].content).toContain('https://i.redd.it/img1.png');
+      expect(doc.comments[0].content).toContain('https://i.redd.it/img2.png');
+    });
+
+    it('ignores action row icons, vote buttons, and share icons inside <shreddit-comment>', () => {
+      const doc = adapter.extract(commentActionRowIconsFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].content).toBe('Comment body text.');
+      expect(doc.comments[0].content).not.toContain('upvote.svg');
+      expect(doc.comments[0].content).not.toContain('share.svg');
     });
   });
 });

@@ -56,6 +56,18 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
         <shreddit-comment thingid="t1_del_orphan" author="[deleted]" score="-2" depth="0" deleted="true">
           <div slot="comment"><p>[deleted]</p></div>
         </shreddit-comment>
+
+        <!-- Image/meme reply comment: verifies meme image extraction and no blank bullet -->
+        <shreddit-comment thingid="t1_meme" author="amr3k" score="14" depth="0">
+          <div slot="avatar">
+            <shreddit-avatar>
+              <faceplate-img src="https://styles.redditmedia.com/avatar_amr3k.png"></faceplate-img>
+            </shreddit-avatar>
+          </div>
+          <div slot="comment">
+            <img src="https://i.redd.it/architecture_meme.png" alt="Architecture meme" />
+          </div>
+        </shreddit-comment>
       </div>
     `;
 
@@ -113,6 +125,11 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
 
     // Orphaned deleted comment pruned
     expect(markdown).not.toContain('[-2]');
+
+    // Comment media extraction: meme image extracted as body, avoiding empty bullet point
+    expect(markdown).toContain('- **[+14] amr3k**: https://i.redd.it/architecture_meme.png');
+    expect(markdown).not.toContain('- **[+14] amr3k**: \n');
+    expect(markdown).not.toContain('https://styles.redditmedia.com/avatar_amr3k.png');
   });
 
   it('end-to-end: handles non-text link submission and partial loading flags', async () => {
