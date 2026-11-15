@@ -18,5 +18,11 @@ describe('Three-Layer Architecture Seams', () => {
   it('extension layer is defined and exports content initialization without side effects', () => {
     expect(extension.EXTENSION_LAYER).toBe('extension');
     expect(typeof extension.initialize).toBe('function');
+    expect(typeof extension.SPALifecycleManager).toBe('function');
+    expect(typeof extension.showToast).toBe('function');
+    expect(typeof extension.isEditableElement).toBe('function');
+    expect(typeof extension.detectRedditLayout).toBe('function');
+    expect(typeof extension.executeKeyboardCopyTrigger).toBe('function');
+    expect(typeof extension.handleCommand).toBe('function');
   });
 });

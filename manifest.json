@@ -9,6 +9,19 @@
   "host_permissions": [
     "*://*.reddit.com/*"
   ],
+  "background": {
+    "service_worker": "src/extension/background.ts",
+    "type": "module"
+  },
+  "commands": {
+    "copy-thread": {
+      "suggested_key": {
+        "default": "Alt+Shift+C",
+        "mac": "Alt+Shift+C"
+      },
+      "description": "Copy Reddit thread for LLM"
+    }
+  },
   "content_scripts": [
     {
       "matches": [

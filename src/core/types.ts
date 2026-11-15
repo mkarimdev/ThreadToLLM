@@ -71,3 +71,19 @@ export interface ThreadDocument {
   originalPost: OriginalPost;
   comments: CommentNode[];
 }
+
+/**
+ * Counts total comments in a recursive comment tree.
+ */
+export function countComments(comments: CommentNode[]): number {
+  let count = 0;
+  const walk = (node: CommentNode) => {
+    count++;
+    if (node.replies) {
+      node.replies.forEach(walk);
+    }
+  };
+  comments.forEach(walk);
+  return count;
+}
+

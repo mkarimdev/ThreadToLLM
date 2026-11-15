@@ -31,4 +31,17 @@ describe('Manifest V3 Configuration', () => {
     expect(manifest.content_scripts[0].js).toBeDefined();
     expect(manifest.content_scripts[0].js.length).toBeGreaterThan(0);
   });
+
+  it('registers keyboard shortcut Alt+Shift+C in commands', () => {
+    expect(manifest.commands).toBeDefined();
+    expect(manifest.commands['copy-thread']).toBeDefined();
+    expect(manifest.commands['copy-thread'].suggested_key.default).toBe('Alt+Shift+C');
+    expect(manifest.commands['copy-thread'].suggested_key.mac).toBe('Alt+Shift+C');
+  });
+
+  it('registers background service worker as ES module', () => {
+    expect(manifest.background).toBeDefined();
+    expect(manifest.background.service_worker).toBe('src/extension/background.ts');
+    expect(manifest.background.type).toBe('module');
+  });
 });

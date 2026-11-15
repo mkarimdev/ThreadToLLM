@@ -6,7 +6,7 @@
 import { PlatformAdapter } from '../adapter.interface';
 import { PlatformUI } from '../ui.interface';
 import { RedditAdapter } from './reddit.adapter';
-import { CommentNode, FilterPipeline, MarkdownSerializer } from '../../core';
+import { countComments, FilterPipeline, MarkdownSerializer } from '../../core';
 
 export interface ClipboardService {
   writeText(text: string): Promise<void>;
@@ -143,18 +143,6 @@ export class RedditUI implements PlatformUI {
     return button;
   }
 
-  private countComments(comments: CommentNode[]): number {
-    let count = 0;
-    const walk = (node: CommentNode) => {
-      count++;
-      if (node.replies) {
-        node.replies.forEach(walk);
-      }
-    };
-    comments.forEach(walk);
-    return count;
-  }
-
   private async executeExtractionAndCopy(
     postElement: HTMLElement,
     domRoot?: HTMLElement | Document | Element
@@ -180,6 +168,6 @@ export class RedditUI implements PlatformUI {
 
     await clipboard.writeText(serializedMarkdown);
 
-    return this.countComments(filteredDocument.comments);
+    return countComments(filteredDocument.comments);
   }
 }
