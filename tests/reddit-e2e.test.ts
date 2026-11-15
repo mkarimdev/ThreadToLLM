@@ -1,0 +1,130 @@
+// @vitest-environment happy-dom
+import { describe, it, expect, beforeAll } from 'vitest';
+import { extractAndSerialize } from '../src/adapters';
+
+describe('extractAndSerialize (End-to-End Testing Seam)', () => {
+  let textThreadRoot: HTMLDivElement;
+  let linkPostRoot: HTMLDivElement;
+
+  beforeAll(() => {
+    textThreadRoot = document.createElement('div');
+    textThreadRoot.innerHTML = `
+      <shreddit-post
+        id="t3_abc123"
+        post-title="Modern Reddit Architecture Discussion"
+        author="lead_architect"
+        score="150"
+        permalink="/r/webdev/comments/abc123/modern_reddit_architecture"
+        created-timestamp="2026-11-15T10:00:00Z"
+      >
+        <div slot="text-body">
+          <p>We are evaluating web components and custom elements for high-traffic media feeds.</p>
+          <p>How are teams finding the DX and hydration performance?</p>
+        </div>
+      </shreddit-post>
+
+      <div id="comment-tree">
+        <!-- AutoModerator sticky: should be pruned by FilterPipeline -->
+        <shreddit-comment thingid="t1_bot" author="AutoModerator" score="1" depth="0">
+          <div slot="comment"><p>Welcome to r/webdev! Please follow subreddit rules.</p></div>
+        </shreddit-comment>
+
+        <!-- Top-level comment with nested replies and OP response -->
+        <shreddit-comment thingid="t1_com1" author="frontend_dev" score="45" depth="0">
+          <div slot="comment"><p>Web components provide great boundary isolation across large orgs.</p></div>
+          <shreddit-comment thingid="t1_com1_1" author="lead_architect" score="20" depth="1" is-author="true">
+            <div slot="comment"><p>Agreed, especially for cross-framework component sharing.</p></div>
+            <shreddit-comment thingid="t1_com1_1_1" author="junior_eng" score="3" depth="2">
+              <div slot="comment"><p>Did you run into any SSR hydration timing issues?</p></div>
+              <!-- Depth tier 3 (hierarchical tier 4): beyond default maxDepth of 3 tiers, should be capped -->
+              <shreddit-comment thingid="t1_com1_1_1_1" author="lead_architect" score="2" depth="3" is-author="true">
+                <div slot="comment"><p>Deep reply that exceeds depth limit.</p></div>
+              </shreddit-comment>
+            </shreddit-comment>
+          </shreddit-comment>
+        </shreddit-comment>
+
+        <!-- Deleted parent with active reply: should retain [deleted] placeholder -->
+        <shreddit-comment thingid="t1_del_parent" author="[deleted]" score="0" depth="0" deleted="true">
+          <div slot="comment"><p>[deleted]</p></div>
+          <shreddit-comment thingid="t1_del_child" author="helpful_reviewer" score="12" depth="1">
+            <div slot="comment"><p>The original question asked about bundle sizes.</p></div>
+          </shreddit-comment>
+        </shreddit-comment>
+
+        <!-- Orphaned deleted comment: should be completely pruned -->
+        <shreddit-comment thingid="t1_del_orphan" author="[deleted]" score="-2" depth="0" deleted="true">
+          <div slot="comment"><p>[deleted]</p></div>
+        </shreddit-comment>
+      </div>
+    `;
+
+    linkPostRoot = document.createElement('div');
+    linkPostRoot.innerHTML = `
+      <shreddit-post
+        id="t3_link99"
+        post-title="Official TypeScript 5.8 Release Notes"
+        author="msft_announcer"
+        score="500"
+        content-href="https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/"
+        permalink="/r/typescript/comments/link99/announcing_typescript_5_8"
+      >
+      </shreddit-post>
+      <shreddit-comment thingid="c1" author="enthusiast" score="40" depth="0">
+        <div slot="comment"><p>The performance improvements in 5.8 look substantial!</p></div>
+      </shreddit-comment>
+      <shreddit-comment-tree-action>
+        <button>Load more comments</button>
+      </shreddit-comment-tree-action>
+    `;
+  });
+
+  it('end-to-end: extracts DOM, filters noise, and serializes into expected token-dense Markdown', async () => {
+    const markdown = await extractAndSerialize(textThreadRoot);
+
+    // Frontmatter validation
+    expect(markdown).toContain('---');
+    expect(markdown).toContain('source: reddit');
+    expect(markdown).toContain('title: "Modern Reddit Architecture Discussion"');
+    expect(markdown).toContain('url: "https://reddit.com/r/webdev/comments/abc123/modern_reddit_architecture"');
+    expect(markdown).toContain('author: lead_architect');
+    expect(markdown).toContain('extracted_count: 8');
+    expect(markdown).toContain('partial_load: false');
+
+    // Post content validation
+    expect(markdown).toContain('# Modern Reddit Architecture Discussion');
+    expect(markdown).toContain('We are evaluating web components and custom elements for high-traffic media feeds.');
+    expect(markdown).toContain('How are teams finding the DX and hydration performance?');
+
+    // AutoModerator pruned
+    expect(markdown).not.toContain('AutoModerator');
+    expect(markdown).not.toContain('Welcome to r/webdev');
+
+    // Valid comments and OP attribution
+    expect(markdown).toContain('- **[+45] frontend_dev**: Web components provide great boundary isolation across large orgs.');
+    expect(markdown).toContain('  - **[+20] lead_architect (OP)**: Agreed, especially for cross-framework component sharing.');
+    expect(markdown).toContain('    - **[+3] junior_eng**: Did you run into any SSR hydration timing issues?');
+
+    // Depth capped beyond tier 3
+    expect(markdown).not.toContain('Deep reply that exceeds depth limit');
+
+    // Deleted parent placeholder retained with reply
+    expect(markdown).toContain('- **[0] [deleted]**: [deleted]');
+    expect(markdown).toContain('  - **[+12] helpful_reviewer**: The original question asked about bundle sizes.');
+
+    // Orphaned deleted comment pruned
+    expect(markdown).not.toContain('[-2]');
+  });
+
+  it('end-to-end: handles non-text link submission and partial loading flags', async () => {
+    const markdown = await extractAndSerialize(linkPostRoot);
+
+    expect(markdown).toContain('source: reddit');
+    expect(markdown).toContain('title: "Official TypeScript 5.8 Release Notes"');
+    expect(markdown).toContain('author: msft_announcer');
+    expect(markdown).toContain('extracted_count: 1');
+    expect(markdown).toContain('partial_load: true');
+    expect(markdown).toContain('https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/');
+    expect(markdown).toContain('- **[+40] enthusiast**: The performance improvements in 5.8 look substantial!');
+  });
+});

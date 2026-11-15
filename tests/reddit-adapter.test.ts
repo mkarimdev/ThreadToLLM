@@ -1,0 +1,389 @@
+// @vitest-environment happy-dom
+import { describe, it, expect, beforeAll } from 'vitest';
+import { RedditAdapter } from '../src/adapters/reddit/reddit.adapter';
+
+describe('RedditAdapter', () => {
+  let adapter: RedditAdapter;
+
+  // Pre-parsed DOM fixtures scoped to beforeAll (CODING_STANDARDS.md)
+  let standardPostFixture: HTMLDivElement;
+  let linkPostFixture: HTMLDivElement;
+  let mediaEmbedFixture: HTMLDivElement;
+  let textAndMediaFixture: HTMLDivElement;
+  let galleryFixture: HTMLDivElement;
+  let nestedCommentFixture: HTMLDivElement;
+  let flatCommentFixture: HTMLDivElement;
+  let deletedUserActiveContentFixture: HTMLDivElement;
+  let partialTreeActionFixture: HTMLDivElement;
+  let partialFaceplateFixture: HTMLDivElement;
+  let partialCommentCountFixture: HTMLDivElement;
+  let fullyHydratedFixture: HTMLDivElement;
+
+  beforeAll(() => {
+    adapter = new RedditAdapter();
+
+    standardPostFixture = document.createElement('div');
+    standardPostFixture.innerHTML = `
+      <shreddit-post
+        id="t3_xyz123"
+        post-title="Ask Reddit: What is your favorite TypeScript pattern?"
+        author="ts_guru"
+        score="84"
+        permalink="/r/typescript/comments/xyz123/favorite_pattern"
+        created-timestamp="2026-11-15T12:00:00Z"
+      >
+        <div slot="text-body">
+          <p>Curious what architectural patterns have saved you the most debugging time in large codebases.</p>
+          <p>Personally, I love discriminated unions for domain state modeling.</p>
+        </div>
+      </shreddit-post>
+    `;
+
+    linkPostFixture = document.createElement('div');
+    linkPostFixture.innerHTML = `
+      <shreddit-post
+        id="t3_link1"
+        post-title="Show HN: A new tool"
+        author="tech_user"
+        score="120"
+        content-href="https://news.ycombinator.com/item?id=12345"
+        permalink="/r/programming/comments/link1/show_hn"
+      >
+      </shreddit-post>
+    `;
+
+    mediaEmbedFixture = document.createElement('div');
+    mediaEmbedFixture.innerHTML = `
+      <shreddit-post
+        id="t3_img1"
+        post-title="Check out my workspace setup"
+        author="designer_dev"
+        score="350"
+        permalink="/r/battlestations/comments/img1/workspace"
+      >
+        <div slot="content">
+          <img src="https://i.redd.it/desk_setup.png" alt="Desk setup" />
+        </div>
+      </shreddit-post>
+    `;
+
+    textAndMediaFixture = document.createElement('div');
+    textAndMediaFixture.innerHTML = `
+      <shreddit-post
+        id="t3_both1"
+        post-title="Post with text and outbound link"
+        author="writer_dev"
+        score="50"
+        content-href="https://example.com/source-doc"
+        permalink="/r/technology/comments/both1"
+      >
+        <div slot="text-body">
+          <p>Here is my detailed analysis of the announcement.</p>
+        </div>
+      </shreddit-post>
+    `;
+
+    galleryFixture = document.createElement('div');
+    galleryFixture.innerHTML = `
+      <shreddit-post
+        id="t3_gallery1"
+        post-title="Multiple gallery photos"
+        author="photographer"
+        score="80"
+        permalink="/r/pics/comments/gallery1"
+      >
+        <div slot="content">
+          <img src="https://i.redd.it/photo1.png" />
+          <img src="https://i.redd.it/photo2.png" />
+        </div>
+      </shreddit-post>
+    `;
+
+    nestedCommentFixture = document.createElement('div');
+    nestedCommentFixture.innerHTML = `
+      <shreddit-post
+        id="t3_xyz123"
+        post-title="Ask Reddit: What is your favorite TypeScript pattern?"
+        author="ts_guru"
+        score="84"
+        permalink="/r/typescript/comments/xyz123/favorite_pattern"
+      >
+        <div slot="text-body"><p>Post text</p></div>
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment
+          thingid="t1_c1"
+          author="dev_alex"
+          score="84"
+          depth="0"
+        >
+          <div slot="comment">
+            <p>Branded types for domain IDs! Prevents passing a UserId where an OrderId is expected.</p>
+          </div>
+          <shreddit-comment
+            thingid="t1_c1_1"
+            author="ts_guru"
+            score="32"
+            depth="1"
+            is-author="true"
+          >
+            <div slot="comment">
+              <p>Completely agree. Zero runtime cost with total compile-time safety.</p>
+            </div>
+            <shreddit-comment
+              thingid="t1_c1_1_1"
+              author="curious_junior"
+              score="5"
+              depth="2"
+            >
+              <div slot="comment">
+                <p>Does this work well with JSON serialization though?</p>
+              </div>
+            </shreddit-comment>
+          </shreddit-comment>
+        </shreddit-comment>
+        <shreddit-comment
+          thingid="t1_c2"
+          author="[deleted]"
+          score="0"
+          depth="0"
+          deleted="true"
+        >
+          <div slot="comment">
+            <p>[deleted]</p>
+          </div>
+          <shreddit-comment
+            thingid="t1_c2_1"
+            author="helpful_dev"
+            score="19"
+            depth="1"
+          >
+            <div slot="comment">
+              <p>To answer the deleted question: yes, satisfies operator solves this in TS 4.9+.</p>
+            </div>
+          </shreddit-comment>
+        </shreddit-comment>
+      </div>
+    `;
+
+    flatCommentFixture = document.createElement('div');
+    flatCommentFixture.innerHTML = `
+      <shreddit-post id="t3_1" post-title="Test Post" author="alice" permalink="/r/test/comments/1">
+      </shreddit-post>
+      <shreddit-comment thingid="c1" author="bob" score="10" depth="0">
+        <div slot="comment"><p>Top comment</p></div>
+      </shreddit-comment>
+      <shreddit-comment thingid="c2" author="charlie" score="5" depth="1">
+        <div slot="comment"><p>Reply to top comment</p></div>
+      </shreddit-comment>
+      <shreddit-comment thingid="c3" author="dave" score="2" depth="0">
+        <div slot="comment"><p>Another top comment</p></div>
+      </shreddit-comment>
+    `;
+
+    deletedUserActiveContentFixture = document.createElement('div');
+    deletedUserActiveContentFixture.innerHTML = `
+      <shreddit-post id="t3_del_user" post-title="Post" author="op" permalink="/r/test/comments/del">
+      </shreddit-post>
+      <shreddit-comment thingid="c_valid" author="[deleted]" score="15" depth="0">
+        <div slot="comment"><p>This comment was written by an account that deleted their profile, but content remains valid.</p></div>
+      </shreddit-comment>
+    `;
+
+    partialTreeActionFixture = document.createElement('div');
+    partialTreeActionFixture.innerHTML = `
+      <shreddit-post id="t3_part1" post-title="Post" author="alice" permalink="/r/test/comments/1">
+      </shreddit-post>
+      <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+        <div slot="comment"><p>Loaded comment</p></div>
+      </shreddit-comment>
+      <shreddit-comment-tree-action>
+        <button>View 15 more replies</button>
+      </shreddit-comment-tree-action>
+    `;
+
+    partialFaceplateFixture = document.createElement('div');
+    partialFaceplateFixture.innerHTML = `
+      <shreddit-post id="t3_part2" post-title="Post" author="alice" permalink="/r/test/comments/2">
+      </shreddit-post>
+      <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+        <div slot="comment"><p>Loaded comment</p></div>
+      </shreddit-comment>
+      <faceplate-partial src="/svc/shreddit/comments/more"></faceplate-partial>
+    `;
+
+    partialCommentCountFixture = document.createElement('div');
+    partialCommentCountFixture.innerHTML = `
+      <shreddit-post id="t3_part3" post-title="Post" author="alice" permalink="/r/test/comments/3" comment-count="45">
+      </shreddit-post>
+      <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+        <div slot="comment"><p>Loaded comment</p></div>
+      </shreddit-comment>
+    `;
+
+    fullyHydratedFixture = document.createElement('div');
+    fullyHydratedFixture.innerHTML = `
+      <shreddit-post id="t3_full" post-title="Post" author="alice" permalink="/r/test/comments/4" comment-count="1">
+      </shreddit-post>
+      <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+        <div slot="comment"><p>Only comment</p></div>
+      </shreddit-comment>
+    `;
+  });
+
+  describe('Post metadata extraction', () => {
+    it('extracts post metadata, score, author, and text body from <shreddit-post>', () => {
+      const doc = adapter.extract(standardPostFixture);
+
+      expect(doc.metadata.source).toBe('reddit');
+      expect(doc.metadata.title).toBe('Ask Reddit: What is your favorite TypeScript pattern?');
+      expect(doc.metadata.url).toBe('https://reddit.com/r/typescript/comments/xyz123/favorite_pattern');
+      expect(doc.metadata.author).toBe('ts_guru');
+      expect(doc.metadata.extractedCount).toBe(0);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+
+      expect(doc.originalPost.id).toBe('t3_xyz123');
+      expect(doc.originalPost.title).toBe('Ask Reddit: What is your favorite TypeScript pattern?');
+      expect(doc.originalPost.author).toBe('ts_guru');
+      expect(doc.originalPost.score).toBe(84);
+      expect(doc.originalPost.content).toBe(
+        'Curious what architectural patterns have saved you the most debugging time in large codebases.\n\nPersonally, I love discriminated unions for domain state modeling.'
+      );
+      expect(doc.originalPost.createdAt).toBe('2026-11-15T12:00:00Z');
+      expect(doc.comments).toEqual([]);
+    });
+
+    it('extracts external target URL for link submissions when text body is absent', () => {
+      const doc = adapter.extract(linkPostFixture);
+
+      expect(doc.metadata.url).toBe('https://reddit.com/r/programming/comments/link1/show_hn');
+      expect(doc.originalPost.url).toBe('https://news.ycombinator.com/item?id=12345');
+      expect(doc.originalPost.content).toBe('https://news.ycombinator.com/item?id=12345');
+    });
+
+    it('extracts media embed URL as fallback content for image or video submissions', () => {
+      const doc = adapter.extract(mediaEmbedFixture);
+
+      expect(doc.originalPost.url).toBe('https://i.redd.it/desk_setup.png');
+      expect(doc.originalPost.content).toBe('https://i.redd.it/desk_setup.png');
+    });
+
+    it('retains both text body and external URL when both exist', () => {
+      const doc = adapter.extract(textAndMediaFixture);
+
+      expect(doc.originalPost.url).toBe('https://example.com/source-doc');
+      expect(doc.originalPost.content).toContain('Here is my detailed analysis of the announcement.');
+      expect(doc.originalPost.content).toContain('https://example.com/source-doc');
+    });
+
+    it('handles image galleries by extracting multiple image URLs', () => {
+      const doc = adapter.extract(galleryFixture);
+
+      expect(doc.originalPost.content).toContain('https://i.redd.it/photo1.png');
+      expect(doc.originalPost.content).toContain('https://i.redd.it/photo2.png');
+    });
+  });
+
+  describe('Comment tree traversal and extraction', () => {
+    it('traverses nested <shreddit-comment> elements and builds canonical CommentTree', () => {
+      const doc = adapter.extract(nestedCommentFixture);
+
+      expect(doc.metadata.extractedCount).toBe(5);
+      expect(doc.comments).toHaveLength(2);
+
+      // Comment 1
+      const c1 = doc.comments[0];
+      expect(c1.id).toBe('t1_c1');
+      expect(c1.author).toBe('dev_alex');
+      expect(c1.score).toBe(84);
+      expect(c1.content).toBe('Branded types for domain IDs! Prevents passing a UserId where an OrderId is expected.');
+      expect(c1.depth).toBe(0);
+      expect(c1.isOp).toBeFalsy();
+      expect(c1.replies).toHaveLength(1);
+
+      // Child 1.1 (OP)
+      const c1_1 = c1.replies[0];
+      expect(c1_1.id).toBe('t1_c1_1');
+      expect(c1_1.author).toBe('ts_guru');
+      expect(c1_1.score).toBe(32);
+      expect(c1_1.isOp).toBe(true);
+      expect(c1_1.depth).toBe(1);
+      expect(c1_1.replies).toHaveLength(1);
+
+      // Child 1.1.1
+      const c1_1_1 = c1_1.replies[0];
+      expect(c1_1_1.id).toBe('t1_c1_1_1');
+      expect(c1_1_1.author).toBe('curious_junior');
+      expect(c1_1_1.score).toBe(5);
+      expect(c1_1_1.depth).toBe(2);
+      expect(c1_1_1.replies).toHaveLength(0);
+
+      // Comment 2 (Deleted parent)
+      const c2 = doc.comments[1];
+      expect(c2.id).toBe('t1_c2');
+      expect(c2.author).toBe('[deleted]');
+      expect(c2.isDeleted).toBe(true);
+      expect(c2.score).toBe(0);
+      expect(c2.replies).toHaveLength(1);
+
+      // Child 2.1
+      const c2_1 = c2.replies[0];
+      expect(c2_1.id).toBe('t1_c2_1');
+      expect(c2_1.author).toBe('helpful_dev');
+      expect(c2_1.score).toBe(19);
+      expect(c2_1.depth).toBe(1);
+    });
+
+    it('builds canonical CommentTree when <shreddit-comment> elements are flat siblings with depth attributes', () => {
+      const doc = adapter.extract(flatCommentFixture);
+
+      expect(doc.metadata.extractedCount).toBe(3);
+      expect(doc.comments).toHaveLength(2);
+      expect(doc.comments[0].id).toBe('c1');
+      expect(doc.comments[0].replies).toHaveLength(1);
+      expect(doc.comments[0].replies[0].id).toBe('c2');
+      expect(doc.comments[1].id).toBe('c3');
+      expect(doc.comments[1].replies).toHaveLength(0);
+    });
+
+    it('preserves comment content when user account is [deleted] but content is not deleted', () => {
+      const doc = adapter.extract(deletedUserActiveContentFixture);
+
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].author).toBe('[deleted]');
+      expect(doc.comments[0].isDeleted).toBeFalsy();
+      expect(doc.comments[0].content).toBe(
+        'This comment was written by an account that deleted their profile, but content remains valid.'
+      );
+    });
+  });
+
+  describe('Partial loading detection', () => {
+    it('sets isPartiallyLoaded: true when <shreddit-comment-tree-action> is present', () => {
+      const doc = adapter.extract(partialTreeActionFixture);
+
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.extractedCount).toBe(1);
+    });
+
+    it('sets isPartiallyLoaded: true when <faceplate-partial> or <shreddit-async-loader> is present', () => {
+      const doc = adapter.extract(partialFaceplateFixture);
+
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: true when <shreddit-post> comment-count exceeds extracted count', () => {
+      const doc = adapter.extract(partialCommentCountFixture);
+
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: false when thread has no unhydrated elements', () => {
+      const doc = adapter.extract(fullyHydratedFixture);
+
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+  });
+});

@@ -4,3 +4,5 @@
  */
 
 export const ADAPTERS_LAYER = 'adapters' as const;
+export * from './adapter.interface';
+export * from './reddit';
