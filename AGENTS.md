@@ -13,3 +13,14 @@ Canonical triage roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-
 ### Domain docs
 
 Single-context layout (`GLOSSARY.md` and `docs/adr/` at repo root). See `docs/agents/domain.md`.
+
+### Coding standards
+
+Coding standards and review rules live in `CODING_STANDARDS.md`.
+
+### Git workflow
+
+- Linear trunk on `master`.
+- Push to `origin master` upon completing each ticket once TDD passes and code review is clean.
+- Reference ticket in commit messages (`#<n>`).
+
