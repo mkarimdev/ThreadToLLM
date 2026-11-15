@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { FilterPipeline } from '../src/core/filters';
+import { MarkdownSerializer } from '../src/core/serializer';
 import { ThreadDocument } from '../src/core/types';
 
 describe('FilterPipeline', () => {
@@ -266,8 +267,8 @@ describe('FilterPipeline', () => {
     });
   });
 
-  describe('Depth Capping', () => {
-    it('caps comment hierarchy at a default maximum depth tier of 3', () => {
+  describe('Depth Retention and Capping', () => {
+    it('defaults to retaining unlimited comment hierarchy depth when no custom maxDepth is provided', () => {
       const pipeline = new FilterPipeline();
       const doc: ThreadDocument = {
         ...baseDoc,
@@ -275,27 +276,35 @@ describe('FilterPipeline', () => {
           {
             id: 'tier_1',
             author: 'user1',
-            content: 'Tier 1 root comment',
+            content: 'Tier 1 root comment (depth 0)',
             score: 10,
             replies: [
               {
                 id: 'tier_2',
                 author: 'user2',
-                content: 'Tier 2 reply',
+                content: 'Tier 2 reply (depth 1)',
                 score: 5,
                 replies: [
                   {
                     id: 'tier_3',
                     author: 'user3',
-                    content: 'Tier 3 reply',
+                    content: 'Tier 3 reply (depth 2)',
                     score: 2,
                     replies: [
                       {
                         id: 'tier_4',
                         author: 'user4',
-                        content: 'Tier 4 reply beyond default depth limit',
+                        content: 'Tier 4 reply (depth 3)',
                         score: 1,
-                        replies: [],
+                        replies: [
+                          {
+                            id: 'tier_5',
+                            author: 'user5',
+                            content: 'Tier 5 deep reply (depth 4)',
+                            score: 1,
+                            replies: [],
+                          },
+                        ],
                       },
                     ],
                   },
@@ -319,7 +328,146 @@ describe('FilterPipeline', () => {
 
       const tier3 = tier2.replies[0];
       expect(tier3.id).toBe('tier_3');
-      // Tier 4 must be pruned
+      expect(tier3.replies).toHaveLength(1);
+
+      const tier4 = tier3.replies[0];
+      expect(tier4.id).toBe('tier_4');
+      expect(tier4.replies).toHaveLength(1);
+
+      const tier5 = tier4.replies[0];
+      expect(tier5.id).toBe('tier_5');
+      expect(tier5.content).toBe('Tier 5 deep reply (depth 4)');
+
+      // Verify explicit undefined or Infinity options also preserve full depth
+      const pipelineUndefined = new FilterPipeline({ maxDepth: undefined });
+      const resultUndefined = pipelineUndefined.filter(doc);
+      expect(resultUndefined.comments[0].replies[0].replies[0].replies[0].replies[0].id).toBe('tier_5');
+
+      const pipelineInfinity = new FilterPipeline({ maxDepth: Infinity });
+      const resultInfinity = pipelineInfinity.filter(doc);
+      expect(resultInfinity.comments[0].replies[0].replies[0].replies[0].replies[0].id).toBe('tier_5');
+    });
+
+    it('preserves author replies by OP and (OP) attribution at deep nesting tiers (depth 3 and 4)', () => {
+      const pipeline = new FilterPipeline();
+      const serializer = new MarkdownSerializer();
+      const doc: ThreadDocument = {
+        ...baseDoc,
+        originalPost: {
+          id: 'p1',
+          title: 'Deep Discussion',
+          author: 'op_user',
+          content: 'Discussing deep architectures',
+        },
+        comments: [
+          {
+            id: 'c_root',
+            author: 'commenter1',
+            score: 10,
+            content: 'Root level thought',
+            replies: [
+              {
+                id: 'c_reply_1',
+                author: 'commenter2',
+                score: 5,
+                content: 'First nested response',
+                replies: [
+                  {
+                    id: 'c_reply_2',
+                    author: 'commenter3',
+                    score: 3,
+                    content: 'Second nested question',
+                    replies: [
+                      {
+                        id: 'c_op_deep_3',
+                        author: 'op_user',
+                        isOp: true,
+                        score: 7,
+                        content: 'OP reply at depth 3',
+                        replies: [
+                          {
+                            id: 'c_op_deep_4',
+                            author: 'op_user',
+                            isOp: true,
+                            score: 4,
+                            content: 'OP follow-up snippet at depth 4',
+                            replies: [],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const filtered = pipeline.filter(doc);
+
+      // Verify IR node properties
+      const tier4 = filtered.comments[0].replies[0].replies[0].replies[0];
+      expect(tier4.id).toBe('c_op_deep_3');
+      expect(tier4.isOp).toBe(true);
+
+      const tier5 = tier4.replies[0];
+      expect(tier5.id).toBe('c_op_deep_4');
+      expect(tier5.isOp).toBe(true);
+
+      // Verify Markdown serialization maintains indentation and (OP) badges
+      const markdown = serializer.serialize(filtered);
+      expect(markdown).toContain('      - **[+7] op_user (OP)**: OP reply at depth 3');
+      expect(markdown).toContain('        - **[+4] op_user (OP)**: OP follow-up snippet at depth 4');
+    });
+
+    it('respects custom maxDepth when explicitly passed in options as an upper bound', () => {
+      const pipeline = new FilterPipeline({ maxDepth: 3 });
+      const doc: ThreadDocument = {
+        ...baseDoc,
+        comments: [
+          {
+            id: 'tier_1',
+            author: 'user1',
+            content: 'Tier 1 root comment (depth 0)',
+            score: 10,
+            replies: [
+              {
+                id: 'tier_2',
+                author: 'user2',
+                content: 'Tier 2 reply (depth 1)',
+                score: 5,
+                replies: [
+                  {
+                    id: 'tier_3',
+                    author: 'user3',
+                    content: 'Tier 3 reply (depth 2)',
+                    score: 2,
+                    replies: [
+                      {
+                        id: 'tier_4',
+                        author: 'user4',
+                        content: 'Tier 4 reply beyond depth bound (depth 3)',
+                        score: 1,
+                        replies: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = pipeline.filter(doc);
+
+      expect(result.comments).toHaveLength(1);
+      const tier1 = result.comments[0];
+      const tier2 = tier1.replies[0];
+      const tier3 = tier2.replies[0];
+      expect(tier3.id).toBe('tier_3');
+      // Depth 3 (hierarchical tier 4) must be pruned when maxDepth: 3 is explicitly provided
       expect(tier3.replies).toHaveLength(0);
     });
 

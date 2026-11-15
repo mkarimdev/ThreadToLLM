@@ -36,7 +36,7 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
             <div slot="comment"><p>Agreed, especially for cross-framework component sharing.</p></div>
             <shreddit-comment thingid="t1_com1_1_1" author="junior_eng" score="3" depth="2">
               <div slot="comment"><p>Did you run into any SSR hydration timing issues?</p></div>
-              <!-- Depth tier 3 (hierarchical tier 4): beyond default maxDepth of 3 tiers, should be capped -->
+              <!-- Depth tier 3 (hierarchical tier 4): retained under default full-depth retention -->
               <shreddit-comment thingid="t1_com1_1_1_1" author="lead_architect" score="2" depth="3" is-author="true">
                 <div slot="comment"><p>Deep reply that exceeds depth limit.</p></div>
               </shreddit-comment>
@@ -104,8 +104,8 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('  - **[+20] lead_architect (OP)**: Agreed, especially for cross-framework component sharing.');
     expect(markdown).toContain('    - **[+3] junior_eng**: Did you run into any SSR hydration timing issues?');
 
-    // Depth capped beyond tier 3
-    expect(markdown).not.toContain('Deep reply that exceeds depth limit');
+    // Depth tier 3 retained under default full-depth retention with OP badge
+    expect(markdown).toContain('      - **[+2] lead_architect (OP)**: Deep reply that exceeds depth limit.');
 
     // Deleted parent placeholder retained with reply
     expect(markdown).toContain('- **[0] [deleted]**: [deleted]');

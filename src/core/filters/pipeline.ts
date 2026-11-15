@@ -6,13 +6,13 @@
 import { ThreadDocument, CommentNode } from '../types';
 
 export interface FilterPipelineOptions {
-  /** Maximum hierarchical depth tier to retain. Default: 3. */
+  /** Maximum hierarchical depth tier to retain. Default: Infinity (unlimited). */
   maxDepth?: number;
   /** Additional bot usernames to prune (case-insensitive). */
   botAuthors?: string[];
 }
 
-const DEFAULT_MAX_DEPTH = 3;
+const DEFAULT_MAX_DEPTH = Infinity;
 const DEFAULT_BOT_REGEX = /^(?:automoderator|.+[-_]bot)$/i;
 const DELETED_TEXT_REGEX = /^\[(?:deleted|removed)\]$/i;
 
