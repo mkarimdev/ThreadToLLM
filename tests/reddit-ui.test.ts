@@ -7,6 +7,7 @@ describe('RedditUI', () => {
   let templateRoot: HTMLDivElement;
   let barePostTemplate: HTMLElement;
   let altPostTemplate: HTMLElement;
+  let headerOnlyPostTemplate: HTMLElement;
 
   beforeAll(() => {
     // Parse fixtures once at beforeAll scope (CODING_STANDARDS.md)
@@ -19,9 +20,16 @@ describe('RedditUI', () => {
         score="120"
         permalink="/r/devops/comments/p1/scaling_distributed_systems"
       >
+        <div slot="credit-bar" class="header-credit-bar">
+          <span class="author">dist_expert</span>
+          <button aria-label="More options">...</button>
+        </div>
         <div slot="text-body"><p>What are the key trade-offs in multi-region replication?</p></div>
-        <div slot="credit-bar" class="action-bar-container">
-          <button aria-label="Share">Share</button>
+        <div slot="action-bar" class="action-bar-container">
+          <button aria-label="Upvote">Upvote</button>
+          <shreddit-post-share-button>
+            <button aria-label="Share">Share</button>
+          </shreddit-post-share-button>
           <button aria-label="Save">Save</button>
         </div>
       </shreddit-post>
@@ -44,7 +52,22 @@ describe('RedditUI', () => {
     altPostTemplate = document.createElement('shreddit-post');
     altPostTemplate.setAttribute('id', 't3_alt');
     const customActionBar = document.createElement('shreddit-post-action-bar');
+    customActionBar.innerHTML = `
+      <button aria-label="Upvote">Upvote</button>
+      <button aria-label="Share">Share</button>
+      <button aria-label="Save">Save</button>
+    `;
     altPostTemplate.appendChild(customActionBar);
+
+    headerOnlyPostTemplate = document.createElement('shreddit-post');
+    headerOnlyPostTemplate.setAttribute('id', 't3_header_only');
+    const headerOnlyCreditBar = document.createElement('div');
+    headerOnlyCreditBar.setAttribute('slot', 'credit-bar');
+    headerOnlyCreditBar.innerHTML = `
+      <span>Author</span>
+      <button aria-label="More options">...</button>
+    `;
+    headerOnlyPostTemplate.appendChild(headerOnlyCreditBar);
   });
 
   describe('Seam 1: UI Mounting & Idempotency', () => {
@@ -71,8 +94,12 @@ describe('RedditUI', () => {
       expect(button?.classList.contains('thread-to-llm-action')).toBe(true);
 
       // Verify it is placed inside the action bar container alongside Share and Save
-      const actionBar = postElement.querySelector('[slot="credit-bar"]');
+      const actionBar = postElement.querySelector('[slot="action-bar"]');
       expect(actionBar?.contains(button)).toBe(true);
+
+      // Verify slot="credit-bar" is NOT injected into
+      const creditBar = postElement.querySelector('[slot="credit-bar"]');
+      expect(creditBar?.contains(button)).toBe(false);
 
       // Verify SVG icon exists
       const svgIcon = button?.querySelector('svg');
@@ -82,10 +109,42 @@ describe('RedditUI', () => {
       const label = button?.querySelector('.thread-to-llm-label');
       expect(label?.textContent).toBe('Copy for AI');
 
-      // Verify pill styling attributes
+      // Verify pill styling attributes matching Reddit specs
+      expect(button?.style.height).toBe('32px');
       expect(button?.style.borderRadius).toBe('9999px');
+      expect(button?.style.padding).toBe('0px 12px');
+      expect(button?.style.gap).toBe('6px');
       expect(button?.style.cursor).toBe('pointer');
       expect(button?.style.fontFamily).toBe('inherit');
+      expect(button?.style.backgroundColor).toContain('var(--color-neutral-background-weak');
+    });
+
+    it('mounts directly to the right of <shreddit-post-share-button> in action bar', () => {
+      const button = redditUi.mountAction(postElement);
+      const shareButton = postElement.querySelector('shreddit-post-share-button')!;
+
+      expect(button).not.toBeNull();
+      expect(shareButton).not.toBeNull();
+      expect(shareButton.nextElementSibling).toBe(button);
+    });
+
+    it('mounts directly to the right of button[aria-label="Share"] when custom element wrapper is absent', () => {
+      const altPost = altPostTemplate.cloneNode(true) as HTMLElement;
+      const shareBtn = altPost.querySelector('[aria-label="Share"]')!;
+
+      const button = redditUi.mountAction(altPost);
+      expect(button).not.toBeNull();
+      expect(shareBtn.nextElementSibling).toBe(button);
+    });
+
+    it('never injects into slot="credit-bar" even when it is the only slotted container', () => {
+      const headerPost = headerOnlyPostTemplate.cloneNode(true) as HTMLElement;
+      const creditBar = headerPost.querySelector('[slot="credit-bar"]')!;
+
+      const button = redditUi.mountAction(headerPost);
+      expect(button).not.toBeNull();
+      expect(creditBar.contains(button)).toBe(false);
+      expect(headerPost.contains(button)).toBe(true);
     });
 
     it('applies Reddit hover styling transitions on mouseenter and mouseleave', () => {
@@ -120,19 +179,22 @@ describe('RedditUI', () => {
       expect(barePost.contains(button)).toBe(true);
     });
 
-    it('relocates fallback button into action bar if action bar hydrates after initial fallback mount', () => {
+    it('relocates fallback button directly to the right of Share button when action bar hydrates later', () => {
       const barePost = barePostTemplate.cloneNode(true) as HTMLElement;
       const initialButton = redditUi.mountAction(barePost);
       expect(initialButton).not.toBeNull();
       expect(barePost.contains(initialButton)).toBe(true);
 
-      // Hydrate an action bar afterwards
+      // Hydrate an action bar with share button afterwards
       const actionBar = document.createElement('shreddit-post-action-bar');
+      const shareButton = document.createElement('shreddit-post-share-button');
+      actionBar.appendChild(shareButton);
       barePost.appendChild(actionBar);
 
       // Re-trigger mountAction
       redditUi.mountAction(barePost);
       expect(actionBar.contains(initialButton)).toBe(true);
+      expect(shareButton.nextElementSibling).toBe(initialButton);
       expect(barePost.querySelectorAll('.thread-to-llm-action').length).toBe(1);
     });
 

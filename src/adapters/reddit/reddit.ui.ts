@@ -54,11 +54,16 @@ export class RedditUI implements PlatformUI {
     }
 
     const existingButton = postElement.querySelector<HTMLElement>(`.${BUTTON_CLASS}`);
+    const shareButton = this.findShareButton(postElement);
     const container = this.findActionBarContainer(postElement);
 
     if (existingButton) {
-      // If previously mounted into fallback postElement and dedicated action bar hydrated later, relocate it
-      if (container !== postElement && !container.contains(existingButton)) {
+      // If a share button or dedicated action bar hydrated later, relocate the button
+      if (shareButton) {
+        if (shareButton.nextElementSibling !== existingButton) {
+          shareButton.insertAdjacentElement('afterend', existingButton);
+        }
+      } else if (container !== postElement && !container.contains(existingButton)) {
         container.appendChild(existingButton);
       }
       return null;
@@ -70,18 +75,40 @@ export class RedditUI implements PlatformUI {
 
     const button = this.createActionButton(postElement, domRoot);
 
-    container.appendChild(button);
+    if (shareButton) {
+      shareButton.insertAdjacentElement('afterend', button);
+    } else {
+      container.appendChild(button);
+    }
     postElement.dataset[INJECTED_DATA_KEY] = 'true';
 
     return button;
   }
 
+  private findShareButton(postElement: HTMLElement): HTMLElement | null {
+    // 1. Check for modern Reddit shreddit-post-share-button custom element
+    const shredditShare = postElement.querySelector<HTMLElement>('shreddit-post-share-button');
+    if (shredditShare && !shredditShare.closest('[slot="credit-bar"]')) {
+      return shredditShare;
+    }
+
+    // 2. Check for [aria-label="Share"] element outside slot="credit-bar"
+    const shareElements = postElement.querySelectorAll<HTMLElement>('[aria-label="Share"]');
+    for (const el of shareElements) {
+      if (!el.closest('[slot="credit-bar"]')) {
+        return el.closest<HTMLElement>('shreddit-post-share-button') ?? el;
+      }
+    }
+
+    return null;
+  }
+
   private findActionBarContainer(postElement: HTMLElement): HTMLElement {
     const actionBar =
       postElement.querySelector<HTMLElement>(
-        'shreddit-post-action-bar, [slot="action-bar"], [slot="credit-bar"]'
+        'shreddit-post-action-bar, [slot="action-bar"]'
       ) ??
-      postElement.querySelector<HTMLElement>('shreddit-post-share-button')?.parentElement ??
+      this.findShareButton(postElement)?.parentElement ??
       postElement;
 
     return actionBar;
