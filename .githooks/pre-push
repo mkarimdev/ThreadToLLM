@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -e
+
+echo "[git-guardrail] Running pre-push checks (lint, typecheck, test, build)..."
+npm run check

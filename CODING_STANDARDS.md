@@ -10,6 +10,11 @@ Judgement calls and architectural rules enforced during code review.
 - **Account vs. Content Deletion**: Adapters must never classify a comment as deleted solely because its author handle is `[deleted]` or missing. Deleted state requires explicit comment deletion attributes (`deleted="true"`) or purged body content (`[deleted]`, `[removed]`).
 - **Barrel Purity**: Entry-point scripts with runtime side-effects (such as content scripts or service workers) must not execute top-level actions when re-exported in layer barrel files (`index.ts`). Guard top-level execution behind environment checks or isolate entry points.
 - **Accurate Pipeline Feedback**: In-page micro-feedback and user-facing count metrics must reflect the post-pipeline filtered thread document rather than raw pre-filter DOM node totals.
+- **Pure Domain Traversals**: Recursive operations, aggregations, or queries over canonical Intermediate Representations (`ThreadDocument`, `CommentNode[]`) must be declared as pure functions in `src/core/` rather than re-implemented inside UI or platform adapters.
+
+## Extension Architecture
+
+- **Single Dispatch Channel for Commands**: When a browser action or shortcut is registered via `chrome.commands` and routed through the service worker, content scripts must not attach redundant in-page DOM keyboard listeners (`keydown`/`keyup`). Global extension commands must have a single authoritative dispatch channel to prevent double-firing and race conditions.
 
 ## Testing Practices
 
