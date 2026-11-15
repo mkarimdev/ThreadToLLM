@@ -7,4 +7,7 @@ export function initialize(): void {
   console.log('[ThreadToLLM] Content script initialized on reddit.com');
 }
 
-initialize();
+// Execute on injection when running in browser context
+if (typeof window !== 'undefined') {
+  initialize();
+}
