@@ -11,10 +11,12 @@ Judgement calls and architectural rules enforced during code review.
 - **Barrel Purity**: Entry-point scripts with runtime side-effects (such as content scripts or service workers) must not execute top-level actions when re-exported in layer barrel files (`index.ts`). Guard top-level execution behind environment checks or isolate entry points.
 - **Accurate Pipeline Feedback**: In-page micro-feedback and user-facing count metrics must reflect the post-pipeline filtered thread document rather than raw pre-filter DOM node totals.
 - **Pure Domain Traversals**: Recursive operations, aggregations, or queries over canonical Intermediate Representations (`ThreadDocument`, `CommentNode[]`) must be declared as pure functions in `src/core/` rather than re-implemented inside UI or platform adapters.
+- **Token-Dense Frontmatter**: Serialized YAML frontmatter emitted for LLM consumption must emit optional metadata flags conditionally (omitting negative or default states) and avoid internal UI counters to maximize prompt token density.
 
 ## Extension Architecture
 
 - **Single Dispatch Channel for Commands**: When a browser action or shortcut is registered via `chrome.commands` and routed through the service worker, content scripts must not attach redundant in-page DOM keyboard listeners (`keydown`/`keyup`). Global extension commands must have a single authoritative dispatch channel to prevent double-firing and race conditions.
+- **Late Hydration Upgrading**: Platform UI adapters using fallback mount points (e.g. mounting directly to a container before dedicated action bars hydrate) must support relocating fallback elements into dedicated native containers if they hydrate in subsequent mutations.
 
 ## Testing Practices
 

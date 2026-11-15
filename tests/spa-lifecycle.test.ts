@@ -122,4 +122,26 @@ describe('SPA Lifecycle Manager Seam (SPALifecycleManager)', () => {
 
     manager.stop();
   });
+
+  it('mutation echo guardrail: ignores DOM mutations from extension elements to prevent echo loops', async () => {
+    const manager = new SPALifecycleManager({ ui: mockUi, root: document.body });
+    manager.start();
+
+    const post = document.createElement('shreddit-post');
+    document.body.appendChild(post);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockUi.mountAction).toHaveBeenCalledTimes(1);
+
+    // Directly append an extension UI element inside the post (simulating button or label insertion)
+    const injectedElement = document.createElement('div');
+    injectedElement.className = 'thread-to-llm-action';
+    post.appendChild(injectedElement);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Must NOT trigger another mountAction call on the post
+    expect(mockUi.mountAction).toHaveBeenCalledTimes(1);
+
+    manager.stop();
+  });
 });

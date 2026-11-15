@@ -66,6 +66,41 @@ describe('MarkdownSerializer', () => {
       expect(output).toContain('author: "12345"');
       expect(output).toContain('title: "true"');
     });
+
+    it('frontmatter schema contract: only emits permitted canonical keys and suppresses non-true flags and counters', () => {
+      const output = serializer.serialize(minimalDoc);
+      const frontmatterBlock = output.split('---')[1];
+      const frontmatterKeys = frontmatterBlock
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.includes(':'))
+        .map((line) => line.split(':')[0].trim());
+
+      // Only canonical spec keys allowed
+      expect(frontmatterKeys).toEqual(['source', 'title', 'url', 'author']);
+      expect(frontmatterKeys).not.toContain('extracted_count');
+      expect(frontmatterKeys).not.toContain('extractedCount');
+      expect(frontmatterKeys).not.toContain('partial_load');
+      expect(frontmatterKeys).not.toContain('isPartiallyLoaded');
+
+      // Now verify partial doc only adds isPartiallyLoaded
+      const partialDoc: ThreadDocument = {
+        ...minimalDoc,
+        metadata: {
+          ...minimalDoc.metadata,
+          isPartiallyLoaded: true,
+        },
+      };
+      const partialOutput = serializer.serialize(partialDoc);
+      const partialFrontmatterBlock = partialOutput.split('---')[1];
+      const partialKeys = partialFrontmatterBlock
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.includes(':'))
+        .map((line) => line.split(':')[0].trim());
+
+      expect(partialKeys).toEqual(['source', 'title', 'url', 'author', 'isPartiallyLoaded']);
+    });
   });
 
   describe('Original Post', () => {
