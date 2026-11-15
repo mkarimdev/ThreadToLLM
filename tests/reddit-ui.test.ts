@@ -120,6 +120,22 @@ describe('RedditUI', () => {
       expect(barePost.contains(button)).toBe(true);
     });
 
+    it('relocates fallback button into action bar if action bar hydrates after initial fallback mount', () => {
+      const barePost = barePostTemplate.cloneNode(true) as HTMLElement;
+      const initialButton = redditUi.mountAction(barePost);
+      expect(initialButton).not.toBeNull();
+      expect(barePost.contains(initialButton)).toBe(true);
+
+      // Hydrate an action bar afterwards
+      const actionBar = document.createElement('shreddit-post-action-bar');
+      barePost.appendChild(actionBar);
+
+      // Re-trigger mountAction
+      redditUi.mountAction(barePost);
+      expect(actionBar.contains(initialButton)).toBe(true);
+      expect(barePost.querySelectorAll('.thread-to-llm-action').length).toBe(1);
+    });
+
     it('is idempotent and prevents duplicate button injections', () => {
       const firstButton = redditUi.mountAction(postElement);
       expect(firstButton).not.toBeNull();

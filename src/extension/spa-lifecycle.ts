@@ -10,6 +10,8 @@ export interface SPALifecycleOptions {
   root?: Node;
 }
 
+const ACTION_BAR_SELECTORS = 'shreddit-post-action-bar, [slot="action-bar"], [slot="credit-bar"], shreddit-post-share-button';
+
 export class SPALifecycleManager {
   private readonly ui: PlatformUI;
   private readonly root: Node;
@@ -103,11 +105,29 @@ export class SPALifecycleManager {
         }
 
         const el = node as HTMLElement;
+        if (el.classList?.contains('thread-to-llm-action') || el.closest?.('.thread-to-llm-action')) {
+          continue;
+        }
+
         if (el.tagName?.toLowerCase() === 'shreddit-post') {
           this.ui.mountAction(el);
-        } else if (typeof el.querySelectorAll === 'function') {
-          const nestedPosts = el.querySelectorAll<HTMLElement>('shreddit-post');
-          nestedPosts.forEach((post) => this.ui.mountAction(post));
+        } else {
+          // If a dedicated action bar container is added into an existing post, re-evaluate the parent post
+          const isActionBarCandidate =
+            (typeof el.matches === 'function' && el.matches(ACTION_BAR_SELECTORS)) ||
+            (typeof el.querySelector === 'function' && Boolean(el.querySelector(ACTION_BAR_SELECTORS)));
+
+          if (isActionBarCandidate) {
+            const parentPost = el.closest?.('shreddit-post') as HTMLElement | null;
+            if (parentPost) {
+              this.ui.mountAction(parentPost);
+            }
+          }
+
+          if (typeof el.querySelectorAll === 'function') {
+            const nestedPosts = el.querySelectorAll<HTMLElement>('shreddit-post');
+            nestedPosts.forEach((post) => this.ui.mountAction(post));
+          }
         }
       }
     }

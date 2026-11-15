@@ -88,8 +88,7 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('title: "Modern Reddit Architecture Discussion"');
     expect(markdown).toContain('url: "https://reddit.com/r/webdev/comments/abc123/modern_reddit_architecture"');
     expect(markdown).toContain('author: lead_architect');
-    expect(markdown).toContain('extracted_count: 8');
-    expect(markdown).toContain('partial_load: false');
+    expect(markdown).not.toContain('isPartiallyLoaded');
 
     // Post content validation
     expect(markdown).toContain('# Modern Reddit Architecture Discussion');
@@ -122,8 +121,7 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('source: reddit');
     expect(markdown).toContain('title: "Official TypeScript 5.8 Release Notes"');
     expect(markdown).toContain('author: msft_announcer');
-    expect(markdown).toContain('extracted_count: 1');
-    expect(markdown).toContain('partial_load: true');
+    expect(markdown).toContain('isPartiallyLoaded: true');
     expect(markdown).toContain('https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/');
     expect(markdown).toContain('- **[+40] enthusiast**: The performance improvements in 5.8 look substantial!');
   });

@@ -3,7 +3,7 @@
  * Handles keyboard shortcut copying with input focus suppression and subtle toast feedback (ADR-0003, ADR-0008).
  */
 
-import { RedditAdapter, PlatformAdapter } from '../adapters';
+import { RedditAdapter, PlatformAdapter, findThreadRoot } from '../adapters';
 import { FilterPipeline, MarkdownSerializer, countComments } from '../core';
 import { getDeepActiveElement, isEditableElement } from './focus-guard';
 import { showToast } from './toast';
@@ -62,11 +62,7 @@ export async function executeKeyboardCopyTrigger(
     const filterPipeline = options?.filterPipeline ?? new FilterPipeline();
     const serializer = options?.serializer ?? new MarkdownSerializer();
 
-    const root =
-      post.closest('shreddit-app, main') ??
-      post.parentElement ??
-      post.ownerDocument ??
-      post;
+    const root = findThreadRoot(post);
 
     const rawDocument = adapter.extract(root);
     const filteredDocument = filterPipeline.filter(rawDocument);

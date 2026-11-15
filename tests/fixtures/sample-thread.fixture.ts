@@ -71,8 +71,6 @@ source: reddit
 title: "Ask Reddit: What is your favorite TypeScript pattern?"
 url: "https://reddit.com/r/typescript/comments/xyz123/favorite_pattern"
 author: ts_guru
-extracted_count: 5
-partial_load: false
 ---
 
 # Ask Reddit: What is your favorite TypeScript pattern?

@@ -54,7 +54,7 @@ export function notifyIfUnsupportedLayout(options?: NotifyLayoutOptions): boolea
   if (layout === 'old' || layout === 'legacy-redesign') {
     const toastFn = options?.toastFn ?? showToast;
     toastFn(
-      'ThreadToLLM requires Modern Reddit (shreddit). Old Reddit and legacy redesign are currently unsupported.',
+      'ThreadToLLM requires Modern Reddit (shreddit). Please switch to modern Reddit (www.reddit.com) to extract threads.',
       { type: 'warning', durationMs: 6000 }
     );
     return true;

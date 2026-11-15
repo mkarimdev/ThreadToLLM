@@ -27,7 +27,7 @@ describe('MarkdownSerializer', () => {
       comments: [],
     };
 
-    it('emits structured YAML frontmatter containing all thread metadata fields', () => {
+    it('emits structured YAML frontmatter containing core thread metadata fields', () => {
       const output = serializer.serialize(minimalDoc);
 
       expect(output).toContain('---');
@@ -35,11 +35,10 @@ describe('MarkdownSerializer', () => {
       expect(output).toContain('title: "How to build high-signal AI prompts"');
       expect(output).toContain('url: "https://reddit.com/r/programming/comments/12345/high_signal_ai_prompts"');
       expect(output).toContain('author: prompt_engineer');
-      expect(output).toContain('extracted_count: 0');
-      expect(output).toContain('partial_load: false');
+      expect(output).not.toContain('isPartiallyLoaded');
     });
 
-    it('correctly sets partial_load: true when thread is partially loaded', () => {
+    it('correctly appends isPartiallyLoaded: true when thread is partially loaded', () => {
       const partialDoc: ThreadDocument = {
         ...minimalDoc,
         metadata: {
@@ -50,8 +49,7 @@ describe('MarkdownSerializer', () => {
       };
 
       const output = serializer.serialize(partialDoc);
-      expect(output).toContain('extracted_count: 15');
-      expect(output).toContain('partial_load: true');
+      expect(output).toContain('isPartiallyLoaded: true');
     });
 
     it('quotes strings that could be coerced into YAML numbers or booleans', () => {
@@ -282,6 +280,26 @@ describe('MarkdownSerializer', () => {
       expect(output).toContain('- **[0] [deleted]**: [deleted]');
       expect(output).not.toContain('[deleted] (OP)');
       expect(output).toContain('  - **[+18] active_user**: Active reply underneath deleted parent.');
+    });
+
+    it('preserves content when author account is deleted ([deleted]) but comment is not deleted', () => {
+      const doc: ThreadDocument = {
+        metadata: baseMetadata,
+        originalPost: basePost,
+        comments: [
+          {
+            id: 'c_account_del',
+            author: '[deleted]',
+            content: 'High-signal technical advice from a deleted account.',
+            score: 42,
+            isDeleted: false,
+            replies: [],
+          },
+        ],
+      };
+
+      const output = serializer.serialize(doc);
+      expect(output).toContain('- **[+42] [deleted]**: High-signal technical advice from a deleted account.');
     });
 
     it('indents multiline comment paragraphs to preserve markdown list hierarchy', () => {

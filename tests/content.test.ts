@@ -30,6 +30,28 @@ describe('Content Script Integration Seam (initialize)', () => {
     runtime.cleanup();
   });
 
+  it('alerts user with actionable guidance when shortcut is triggered on unsupported layout', async () => {
+    const toastSpy = vi.fn();
+    const siteTable = document.createElement('div');
+    siteTable.id = 'siteTable';
+    document.body.appendChild(siteTable);
+
+    const runtime = initialize({
+      hostname: 'old.reddit.com',
+      document: document,
+      toastFn: toastSpy,
+    });
+
+    expect(toastSpy).toHaveBeenCalledTimes(1);
+
+    const handled = await runtime.handleMessage({ type: 'TRIGGER_COPY_THREAD' });
+    expect(handled).toBe(false);
+    expect(toastSpy).toHaveBeenCalledTimes(2);
+    expect(toastSpy.mock.calls[1][0]).toContain('switch to modern Reddit');
+
+    runtime.cleanup();
+  });
+
   it('initializes SPA lifecycle manager on modern reddit and injects existing posts', () => {
     const shredditApp = document.createElement('shreddit-app');
     const post = document.createElement('shreddit-post');

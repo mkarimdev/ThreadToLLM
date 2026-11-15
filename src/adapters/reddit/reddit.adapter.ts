@@ -3,8 +3,24 @@
  * Client-side DOM extraction adapter for Modern Reddit custom elements (<shreddit-post>, <shreddit-comment>) (ADR-0001, ADR-0004, ADR-0006).
  */
 
-import { ThreadDocument, ThreadMetadata, OriginalPost, CommentNode } from '../../core';
+import { ThreadDocument, ThreadMetadata, OriginalPost, CommentNode, countComments } from '../../core';
 import { PlatformAdapter } from '../adapter.interface';
+
+/**
+ * Resolves the root discussion container for a given Reddit post element.
+ */
+export function findThreadRoot(
+  postElement: Element,
+  domRoot?: HTMLElement | Document | Element
+): HTMLElement | Document | Element {
+  return (
+    domRoot ??
+    postElement.closest('shreddit-app, main') ??
+    postElement.parentElement ??
+    postElement.ownerDocument ??
+    postElement
+  );
+}
 
 export class RedditAdapter implements PlatformAdapter {
   public extract(domRoot: HTMLElement | Document | Element): ThreadDocument {
@@ -15,7 +31,7 @@ export class RedditAdapter implements PlatformAdapter {
 
     const originalPost = this.extractOriginalPost(postEl);
     const comments = this.extractCommentTree(domRoot, originalPost.author);
-    const extractedCount = this.countExtractedComments(comments);
+    const extractedCount = countComments(comments);
     const isPartiallyLoaded = this.detectPartialLoad(domRoot, postEl, extractedCount);
 
     const metadata: ThreadMetadata = {
@@ -32,18 +48,6 @@ export class RedditAdapter implements PlatformAdapter {
       originalPost,
       comments,
     };
-  }
-
-  private countExtractedComments(comments: CommentNode[]): number {
-    let count = 0;
-    const countNode = (node: CommentNode) => {
-      count++;
-      if (node.replies) {
-        node.replies.forEach(countNode);
-      }
-    };
-    comments.forEach(countNode);
-    return count;
   }
 
   private detectPartialLoad(

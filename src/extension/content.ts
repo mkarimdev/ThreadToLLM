@@ -28,11 +28,38 @@ export function initialize(options?: ContentRuntimeOptions): ContentRuntime {
   });
 
   if (isUnsupported) {
+    const handleUnsupportedMessage = async (message: unknown): Promise<boolean> => {
+      if (message && typeof message === 'object' && (message as { type?: string }).type === 'TRIGGER_COPY_THREAD') {
+        notifyIfUnsupportedLayout({
+          hostname: options?.hostname,
+          document: doc,
+          toastFn: options?.toastFn ?? showToast,
+        });
+        return false;
+      }
+      return false;
+    };
+
+    let chromeListener: ((message: unknown, sender: unknown, sendResponse: (resp: unknown) => void) => boolean) | null = null;
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+      chromeListener = (message: unknown, _sender: unknown, sendResponse: (resp: unknown) => void) => {
+        void handleUnsupportedMessage(message).then((result) => {
+          sendResponse({ handled: result });
+        });
+        return true;
+      };
+      chrome.runtime.onMessage.addListener(chromeListener);
+    }
+
     return {
       isSupported: false,
       lifecycleManager: null,
-      handleMessage: async () => false,
-      cleanup: () => {},
+      handleMessage: handleUnsupportedMessage,
+      cleanup: () => {
+        if (chromeListener && typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+          chrome.runtime.onMessage.removeListener(chromeListener);
+        }
+      },
     };
   }
 

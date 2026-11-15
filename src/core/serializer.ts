@@ -64,8 +64,8 @@ function serializeCommentNode(
   const lines: string[] = [];
   const indent = '  '.repeat(depth);
   const scoreStr = formatScoreBadge(comment.score);
-  const isDeleted = Boolean(comment.isDeleted || comment.author === '[deleted]');
-  const author = isDeleted ? '[deleted]' : comment.author;
+  const isDeleted = Boolean(comment.isDeleted);
+  const author = isDeleted ? '[deleted]' : (comment.author || 'anonymous');
   const isOp = isOpAuthor(comment, opAuthor);
   const authorStr = isOp ? `${author} (OP)` : author;
   const rawContent = isDeleted && (!comment.content || comment.content.trim() === '')
@@ -110,8 +110,9 @@ export class MarkdownSerializer {
     lines.push(`title: ${formatYamlScalar(doc.metadata.title)}`);
     lines.push(`url: ${formatYamlScalar(doc.metadata.url)}`);
     lines.push(`author: ${formatYamlScalar(doc.metadata.author)}`);
-    lines.push(`extracted_count: ${formatYamlScalar(doc.metadata.extractedCount)}`);
-    lines.push(`partial_load: ${formatYamlScalar(doc.metadata.isPartiallyLoaded)}`);
+    if (doc.metadata.isPartiallyLoaded) {
+      lines.push('isPartiallyLoaded: true');
+    }
     lines.push('---');
 
     // Original Post

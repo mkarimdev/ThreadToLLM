@@ -5,7 +5,7 @@
 
 import { PlatformAdapter } from '../adapter.interface';
 import { PlatformUI } from '../ui.interface';
-import { RedditAdapter } from './reddit.adapter';
+import { RedditAdapter, findThreadRoot } from './reddit.adapter';
 import { countComments, FilterPipeline, MarkdownSerializer } from '../../core';
 
 export interface ClipboardService {
@@ -49,11 +49,25 @@ export class RedditUI implements PlatformUI {
     postElement: HTMLElement,
     domRoot?: HTMLElement | Document | Element
   ): HTMLElement | null {
-    if (!postElement || postElement.dataset[INJECTED_DATA_KEY] === 'true' || postElement.querySelector(`.${BUTTON_CLASS}`)) {
+    if (!postElement) {
       return null;
     }
 
+    const existingButton = postElement.querySelector<HTMLElement>(`.${BUTTON_CLASS}`);
     const container = this.findActionBarContainer(postElement);
+
+    if (existingButton) {
+      // If previously mounted into fallback postElement and dedicated action bar hydrated later, relocate it
+      if (container !== postElement && !container.contains(existingButton)) {
+        container.appendChild(existingButton);
+      }
+      return null;
+    }
+
+    if (postElement.dataset[INJECTED_DATA_KEY] === 'true') {
+      return null;
+    }
+
     const button = this.createActionButton(postElement, domRoot);
 
     container.appendChild(button);
@@ -147,12 +161,7 @@ export class RedditUI implements PlatformUI {
     postElement: HTMLElement,
     domRoot?: HTMLElement | Document | Element
   ): Promise<number> {
-    const root =
-      domRoot ??
-      postElement.closest('shreddit-app, main') ??
-      postElement.parentElement ??
-      postElement.ownerDocument ??
-      postElement;
+    const root = findThreadRoot(postElement, domRoot);
 
     const rawDocument = this.adapter.extract(root);
     const filteredDocument = this.filterPipeline.filter(rawDocument);
