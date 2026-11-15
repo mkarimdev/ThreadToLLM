@@ -8,9 +8,10 @@ describe('Three-Layer Architecture Seams', () => {
     expect(core.CORE_LAYER).toBe('core');
   });
 
-  it('adapters layer is defined and exports RedditAdapter and extractAndSerialize', () => {
+  it('adapters layer is defined and exports RedditAdapter, RedditUI, and extractAndSerialize', () => {
     expect(adapters.ADAPTERS_LAYER).toBe('adapters');
     expect(typeof adapters.RedditAdapter).toBe('function');
+    expect(typeof adapters.RedditUI).toBe('function');
     expect(typeof adapters.extractAndSerialize).toBe('function');
   });
 
