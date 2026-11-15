@@ -5,5 +5,6 @@
 
 export * from './types';
 export * from './serializer';
+export * from './filters';
 export const CORE_LAYER = 'core' as const;
 
