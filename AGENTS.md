@@ -14,6 +14,10 @@ Canonical triage roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-
 
 Single-context layout (`GLOSSARY.md` and `docs/adr/` at repo root). See `docs/agents/domain.md`.
 
+### Specifications
+
+Detailed user stories, architecture requirements, and implementation specs live in `.scratch/spec.md`.
+
 ### Coding standards
 
 Coding standards and review rules live in `CODING_STANDARDS.md`.
