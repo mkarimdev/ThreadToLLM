@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ThreadToLLM",
+  "version": "0.1.0",
+  "description": "Extract Reddit discussion threads and format them into token-dense Markdown for LLMs",
+  "permissions": [
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "*://*.reddit.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.reddit.com/*"
+      ],
+      "js": [
+        "src/extension/content.ts"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
