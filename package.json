@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit && tsc --project tsconfig.core.json --noEmit",
     "typecheck:core": "tsc --project tsconfig.core.json --noEmit",
     "test": "vitest run",
-    "check": "npm run lint && npm run typecheck && npm test"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^3.0.0",

@@ -9,6 +9,7 @@ Judgement calls and architectural rules enforced during code review.
 - **Decoupled Adapters**: Platform DOM extraction (`PlatformAdapter`) and UI injection (`PlatformUI`) must remain decoupled interfaces (ADR-0006).
 - **Account vs. Content Deletion**: Adapters must never classify a comment as deleted solely because its author handle is `[deleted]` or missing. Deleted state requires explicit comment deletion attributes (`deleted="true"`) or purged body content (`[deleted]`, `[removed]`).
 - **Barrel Purity**: Entry-point scripts with runtime side-effects (such as content scripts or service workers) must not execute top-level actions when re-exported in layer barrel files (`index.ts`). Guard top-level execution behind environment checks or isolate entry points.
+- **Accurate Pipeline Feedback**: In-page micro-feedback and user-facing count metrics must reflect the post-pipeline filtered thread document rather than raw pre-filter DOM node totals.
 
 ## Testing Practices
 
