@@ -151,6 +151,7 @@ npm run package
 Contributions are welcome! Please check our community documents before opening an issue or pull request:
 
 - [Contributing Guide](CONTRIBUTING.md): Setup instructions, trunk-based git workflow, Conventional Commits standard, and platform adapter implementation guide.
+- [Changelog](CHANGELOG.md): Complete release history, version notes, and categorized changes.
 - [Coding Standards](CODING_STANDARDS.md): Architectural boundaries, layer decoupling rules, and testing standards.
 - [Domain Glossary](GLOSSARY.md): Canonical terminology for Thread Documents, Comment Trees, Filter Pipelines, and Platform Adapters.
 

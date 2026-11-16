@@ -13,6 +13,7 @@
     "typecheck:core": "tsc --project tsconfig.core.json --noEmit",
     "test": "vitest run",
     "package": "node scripts/package-release.mjs",
+    "changelog": "node scripts/generate-changelog.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },

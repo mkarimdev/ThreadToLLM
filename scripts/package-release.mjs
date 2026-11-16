@@ -17,6 +17,7 @@ import { Buffer } from 'node:buffer';
 import { execSync } from 'node:child_process';
 import process from 'node:process';
 import console from 'node:console';
+import { getCommits, updateChangelog } from './generate-changelog.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -392,6 +393,19 @@ export function packageRelease(options = {}) {
   // Step 1: Version parity verification
   const version = validateVersionParity(packageJsonPath, manifestPath);
   log(`✓ Version parity verified: v${version}`);
+
+  // Step 2: Ensure CHANGELOG.md is synchronized for this release version
+  try {
+    const commits = getCommits({ rootDir });
+    updateChangelog({
+      changelogPath: path.join(rootDir, 'CHANGELOG.md'),
+      version,
+      commits,
+    });
+    log(`✓ CHANGELOG.md synchronized for v${version}`);
+  } catch (err) {
+    log(`Notice: Could not automatically update CHANGELOG.md: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   // Step 2: Validate declared icons
   const declaredIcons = validateDeclaredIcons(manifestPath, publicDir);
