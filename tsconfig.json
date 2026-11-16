@@ -21,6 +21,7 @@
     "src/adapters/**/*.ts",
     "src/extension/**/*.ts",
     "tests/**/*.ts",
+    "scripts/**/*",
     "vite.config.ts",
     "vitest.config.ts",
     "manifest.json"
