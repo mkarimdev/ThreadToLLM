@@ -119,13 +119,14 @@ describe('RedditUI', () => {
       expect(button?.style.backgroundColor).toContain('var(--color-neutral-background-weak');
     });
 
-    it('mounts directly to the right of <shreddit-post-share-button> in action bar', () => {
+    it('mounts directly to the right of <shreddit-post-share-button> in action bar with proper spacing', () => {
       const button = redditUi.mountAction(postElement);
       const shareButton = postElement.querySelector('shreddit-post-share-button')!;
 
       expect(button).not.toBeNull();
       expect(shareButton).not.toBeNull();
       expect(shareButton.nextElementSibling).toBe(button);
+      expect(button?.style.marginLeft).toContain('var(--spacing-xs');
     });
 
     it('mounts directly to the right of button[aria-label="Share"] when custom element wrapper is absent', () => {

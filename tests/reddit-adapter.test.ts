@@ -644,6 +644,25 @@ describe('RedditAdapter', () => {
       expect(doc.metadata.isPartiallyLoaded).toBe(true);
     });
 
+    it('sets isPartiallyLoaded: false when loaders inside comments are non-comment widgets such as faceplate_hovercard', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <shreddit-post id="t3_hovercard_post" post-title="Post" author="alice" permalink="/r/test/comments/hovercard" comment-count="26">
+        </shreddit-post>
+        <div id="comment-tree">
+          ${Array.from({ length: 25 }, (_, i) => `
+            <shreddit-comment thingid="c_${i}" author="user_${i}" score="1" depth="0">
+              <div slot="comment"><p>Comment text ${i}</p></div>
+              <shreddit-async-loader bundlename="faceplate_hovercard"></shreddit-async-loader>
+            </shreddit-comment>
+          `).join('')}
+        </div>
+      `;
+      const doc = adapter.extract(container);
+      expect(doc.metadata.extractedCount).toBe(25);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
     it('sets isPartiallyLoaded: false when an unclicked button is outside comment container in unrelated header', () => {
       const container = document.createElement('div');
       container.innerHTML = `

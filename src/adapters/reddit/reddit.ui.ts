@@ -24,8 +24,10 @@ const BUTTON_CLASS = 'thread-to-llm-action';
 const LABEL_CLASS = 'thread-to-llm-label';
 const INJECTED_DATA_KEY = 'threadToLlmInjected';
 
-const BG_DEFAULT = 'var(--color-neutral-background-weak, rgba(0, 0, 0, 0.05))';
-const BG_HOVER = 'var(--color-neutral-background-hover, rgba(0, 0, 0, 0.1))';
+const BG_DEFAULT =
+  'var(--color-secondary-background, var(--color-neutral-background-weak, rgba(0, 0, 0, 0.05)))';
+const BG_HOVER =
+  'var(--color-secondary-background-hover, var(--color-neutral-background-hover, rgba(0, 0, 0, 0.1)))';
 
 const AI_ICON_SVG = `
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -73,7 +75,7 @@ export class RedditUI implements PlatformUI {
       return null;
     }
 
-    const button = this.createActionButton(postElement, domRoot);
+    const button = this.createActionButton(postElement, shareButton, domRoot);
 
     if (shareButton) {
       shareButton.insertAdjacentElement('afterend', button);
@@ -122,12 +124,27 @@ export class RedditUI implements PlatformUI {
 
   private createActionButton(
     postElement: HTMLElement,
+    shareButton?: HTMLElement | null,
     domRoot?: HTMLElement | Document | Element
   ): HTMLButtonElement {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = BUTTON_CLASS;
     button.setAttribute('aria-label', 'Copy thread for AI');
+
+    // Spacing: match native action bar item spacing directly after Share button
+    let spacing = '8px';
+    if (typeof window !== 'undefined' && shareButton) {
+      const shareStyle = window.getComputedStyle(shareButton);
+      const ml = shareStyle.marginLeft;
+      const mr = shareStyle.marginRight;
+      if (ml && ml !== '0px' && ml !== 'normal') {
+        spacing = ml;
+      } else if (mr && mr !== '0px' && mr !== 'normal') {
+        spacing = mr;
+      }
+    }
+    button.style.marginLeft = `var(--spacing-xs, ${spacing})`;
 
     // Reddit pill styling inheriting typography and proportions
     button.style.display = 'inline-flex';

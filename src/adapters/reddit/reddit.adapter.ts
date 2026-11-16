@@ -73,6 +73,13 @@ export class RedditAdapter implements PlatformAdapter {
       tagName === 'shreddit-more-comments' ||
       tagName === 'more-comments'
     ) {
+      // For shreddit-comment-tree-action, verify it has an active pagination button or loader
+      if (tagName === 'shreddit-comment-tree-action') {
+        const hasTrigger = el.querySelector(
+          'button, [role="button"], faceplate-partial, shreddit-async-loader, shreddit-loading'
+        );
+        return Boolean(hasTrigger);
+      }
       return true;
     }
 
@@ -82,13 +89,30 @@ export class RedditAdapter implements PlatformAdapter {
       return true;
     }
 
-    // 3. Unhydrated loaders strictly scoped inside the comment tree container or individual comment
-    if (
-      el.closest(
-        '#comment-tree, [id*="comment-tree"], shreddit-comment, shreddit-comment-tree-action'
-      )
-    ) {
+    // 3. Loaders directly inside comment tree container (not inside an individual comment)
+    const insideCommentTree = Boolean(
+      el.closest('#comment-tree, [id*="comment-tree"], shreddit-comment-tree-action')
+    );
+    const insideSingleComment = Boolean(el.closest('shreddit-comment'));
+
+    if (insideCommentTree && !insideSingleComment) {
       return true;
+    }
+
+    // 4. Loaders inside an individual comment: only count if loading replies/more comments
+    // (ignores non-comment widgets like author hovercards: bundlename="faceplate_hovercard")
+    if (insideSingleComment) {
+      if (
+        tagName === 'shreddit-loading' ||
+        tagName === 'shreddit-more-comments' ||
+        tagName === 'more-comments'
+      ) {
+        return true;
+      }
+      const bundleName = el.getAttribute('bundlename')?.toLowerCase() || '';
+      if (bundleName.includes('comment') || bundleName.includes('repl')) {
+        return true;
+      }
     }
 
     return false;
