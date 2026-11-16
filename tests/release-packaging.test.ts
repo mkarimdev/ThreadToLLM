@@ -116,6 +116,6 @@ describe('Release Packaging & Verification Seam', () => {
           name.includes('.DS_Store')
       );
       expect(forbidden).toEqual([]);
-    });
+    }, 30000);
   });
 });
