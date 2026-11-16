@@ -55,7 +55,7 @@ export class RedditUI implements PlatformUI {
 
     const existingButton = postElement.querySelector<HTMLElement>(`.${BUTTON_CLASS}`);
     const shareButton = this.findShareButton(postElement);
-    const container = this.findActionBarContainer(postElement);
+    const container = this.findActionBarContainer(postElement, shareButton);
 
     if (existingButton) {
       // If a share button or dedicated action bar hydrated later, relocate the button
@@ -103,12 +103,18 @@ export class RedditUI implements PlatformUI {
     return null;
   }
 
-  private findActionBarContainer(postElement: HTMLElement): HTMLElement {
+  private findActionBarContainer(
+    postElement: HTMLElement,
+    shareButton?: HTMLElement | null
+  ): HTMLElement {
+    const resolvedShareButton =
+      shareButton !== undefined ? shareButton : this.findShareButton(postElement);
+
     const actionBar =
       postElement.querySelector<HTMLElement>(
         'shreddit-post-action-bar, [slot="action-bar"]'
       ) ??
-      this.findShareButton(postElement)?.parentElement ??
+      resolvedShareButton?.parentElement ??
       postElement;
 
     return actionBar;

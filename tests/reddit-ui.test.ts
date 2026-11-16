@@ -179,6 +179,15 @@ describe('RedditUI', () => {
       expect(barePost.contains(button)).toBe(true);
     });
 
+    it('calls findShareButton exactly once during mountAction to prevent redundant traversals', () => {
+      const spy = vi.spyOn(redditUi as unknown as { findShareButton: (el: HTMLElement) => HTMLElement | null }, 'findShareButton');
+      const altPost = altPostTemplate.cloneNode(true) as HTMLElement;
+
+      redditUi.mountAction(altPost);
+      expect(spy).toHaveBeenCalledTimes(1);
+      spy.mockRestore();
+    });
+
     it('relocates fallback button directly to the right of Share button when action bar hydrates later', () => {
       const barePost = barePostTemplate.cloneNode(true) as HTMLElement;
       const initialButton = redditUi.mountAction(barePost);

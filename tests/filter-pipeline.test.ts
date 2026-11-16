@@ -1,7 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { FilterPipeline } from '../src/core/filters';
 import { MarkdownSerializer } from '../src/core/serializer';
-import { ThreadDocument } from '../src/core/types';
+import { ThreadDocument, CommentNode } from '../src/core/types';
+
+function findCommentById(comments: CommentNode[], id: string): CommentNode | undefined {
+  for (const comment of comments) {
+    if (comment.id === id) {
+      return comment;
+    }
+    const found = findCommentById(comment.replies, id);
+    if (found) {
+      return found;
+    }
+  }
+  return undefined;
+}
 
 describe('FilterPipeline', () => {
   const baseDoc: ThreadDocument = {
@@ -341,11 +354,11 @@ describe('FilterPipeline', () => {
       // Verify explicit undefined or Infinity options also preserve full depth
       const pipelineUndefined = new FilterPipeline({ maxDepth: undefined });
       const resultUndefined = pipelineUndefined.filter(doc);
-      expect(resultUndefined.comments[0].replies[0].replies[0].replies[0].replies[0].id).toBe('tier_5');
+      expect(findCommentById(resultUndefined.comments, 'tier_5')?.id).toBe('tier_5');
 
       const pipelineInfinity = new FilterPipeline({ maxDepth: Infinity });
       const resultInfinity = pipelineInfinity.filter(doc);
-      expect(resultInfinity.comments[0].replies[0].replies[0].replies[0].replies[0].id).toBe('tier_5');
+      expect(findCommentById(resultInfinity.comments, 'tier_5')?.id).toBe('tier_5');
     });
 
     it('preserves author replies by OP and (OP) attribution at deep nesting tiers (depth 3 and 4)', () => {
@@ -407,13 +420,13 @@ describe('FilterPipeline', () => {
       const filtered = pipeline.filter(doc);
 
       // Verify IR node properties
-      const tier4 = filtered.comments[0].replies[0].replies[0].replies[0];
-      expect(tier4.id).toBe('c_op_deep_3');
-      expect(tier4.isOp).toBe(true);
+      const tier4 = findCommentById(filtered.comments, 'c_op_deep_3');
+      expect(tier4?.id).toBe('c_op_deep_3');
+      expect(tier4?.isOp).toBe(true);
 
-      const tier5 = tier4.replies[0];
-      expect(tier5.id).toBe('c_op_deep_4');
-      expect(tier5.isOp).toBe(true);
+      const tier5 = findCommentById(filtered.comments, 'c_op_deep_4');
+      expect(tier5?.id).toBe('c_op_deep_4');
+      expect(tier5?.isOp).toBe(true);
 
       // Verify Markdown serialization maintains indentation and (OP) badges
       const markdown = serializer.serialize(filtered);

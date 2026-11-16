@@ -6,6 +6,8 @@
 import { ThreadDocument, ThreadMetadata, OriginalPost, CommentNode, countComments } from '../../core';
 import { PlatformAdapter } from '../adapter.interface';
 
+export const COMMENT_COUNT_TOLERANCE_MARGIN = 2;
+
 /**
  * Resolves the root discussion container for a given Reddit post element.
  */
@@ -76,7 +78,7 @@ export class RedditAdapter implements PlatformAdapter {
 
     // 2. Generic loaders explicitly querying comments endpoint
     const src = el.getAttribute('src') || el.getAttribute('data-src') || '';
-    if (/\/comments\//i.test(src) || src.includes('comments')) {
+    if (/\/comments\//i.test(src)) {
       return true;
     }
 
@@ -97,6 +99,15 @@ export class RedditAdapter implements PlatformAdapter {
       const buttons = Array.from(domRoot.querySelectorAll('button'));
       for (const btn of buttons) {
         if (this.isGlobalPageWidget(btn)) {
+          continue;
+        }
+
+        // Strictly scope pagination buttons to comment containers (container, action bar, or comments)
+        if (
+          !btn.closest(
+            '#comment-tree, [id*="comment-tree"], shreddit-comment-tree-action, shreddit-comment'
+          )
+        ) {
           continue;
         }
 
@@ -150,7 +161,7 @@ export class RedditAdapter implements PlatformAdapter {
     const rawCommentCount = postEl.getAttribute('comment-count');
     if (rawCommentCount !== null) {
       const commentCount = parseInt(rawCommentCount, 10);
-      if (!isNaN(commentCount) && (commentCount - extractedCount) > 2) {
+      if (!isNaN(commentCount) && (commentCount - extractedCount) > COMMENT_COUNT_TOLERANCE_MARGIN) {
         return true;
       }
     }

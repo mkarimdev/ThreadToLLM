@@ -10,7 +10,7 @@ export interface SPALifecycleOptions {
   root?: Node;
 }
 
-const ACTION_BAR_SELECTORS = 'shreddit-post-action-bar, [slot="action-bar"], [slot="credit-bar"], shreddit-post-share-button';
+const ACTION_BAR_SELECTORS = 'shreddit-post-action-bar, [slot="action-bar"], shreddit-post-share-button';
 
 export class SPALifecycleManager {
   private readonly ui: PlatformUI;

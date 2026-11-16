@@ -144,4 +144,28 @@ describe('SPA Lifecycle Manager Seam (SPALifecycleManager)', () => {
 
     manager.stop();
   });
+
+  it('does not trigger action bar re-evaluation on mutations within [slot="credit-bar"]', async () => {
+    const post = document.createElement('shreddit-post');
+    const creditBar = document.createElement('div');
+    creditBar.setAttribute('slot', 'credit-bar');
+    post.appendChild(creditBar);
+    document.body.appendChild(post);
+
+    const manager = new SPALifecycleManager({ ui: mockUi, root: document.body });
+    manager.start();
+    expect(mockUi.mountAction).toHaveBeenCalledTimes(1);
+    vi.mocked(mockUi.mountAction).mockClear();
+
+    // Dynamically insert an element into slot="credit-bar"
+    const newBadge = document.createElement('span');
+    newBadge.textContent = 'Karma badge';
+    creditBar.appendChild(newBadge);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Must NOT trigger another mountAction call because credit-bar is excluded from ACTION_BAR_SELECTORS
+    expect(mockUi.mountAction).not.toHaveBeenCalled();
+
+    manager.stop();
+  });
 });

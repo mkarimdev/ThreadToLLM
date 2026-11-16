@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeAll } from 'vitest';
-import { RedditAdapter } from '../src/adapters/reddit/reddit.adapter';
+import { RedditAdapter, COMMENT_COUNT_TOLERANCE_MARGIN } from '../src/adapters/reddit/reddit.adapter';
 
 describe('RedditAdapter', () => {
   let adapter: RedditAdapter;
@@ -642,6 +642,46 @@ describe('RedditAdapter', () => {
 
       expect(doc.metadata.extractedCount).toBe(1);
       expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: false when an unclicked button is outside comment container in unrelated header', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <header>
+          <button aria-label="Load more comments">View more comments</button>
+        </header>
+        <shreddit-post id="t3_header_btn" post-title="Post" author="alice" permalink="/r/test/comments/header" comment-count="1">
+        </shreddit-post>
+        <div id="comment-tree">
+          <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+            <div slot="comment"><p>Only comment</p></div>
+          </shreddit-comment>
+        </div>
+      `;
+      const doc = adapter.extract(container);
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('sets isPartiallyLoaded: false when loader src contains substring comments but does not match /comments/ endpoint', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <shreddit-post id="t3_loader_sub" post-title="Post" author="alice" permalink="/r/test/comments/loader_sub" comment-count="1">
+        </shreddit-post>
+        <faceplate-partial src="/svc/shreddit/user_comments_summary"></faceplate-partial>
+        <div id="comment-tree">
+          <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+            <div slot="comment"><p>Only comment</p></div>
+          </shreddit-comment>
+        </div>
+      `;
+      const doc = adapter.extract(container);
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('defines COMMENT_COUNT_TOLERANCE_MARGIN as 2', () => {
+      expect(COMMENT_COUNT_TOLERANCE_MARGIN).toBe(2);
     });
   });
 
