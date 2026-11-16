@@ -11,6 +11,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '.scratch/**', 'coverage/**'],
+    ignores: ['dist/**', 'node_modules/**', '.scratch/**', 'coverage/**', '.worktrees/**'],
   }
 );
