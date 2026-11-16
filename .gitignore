@@ -6,4 +6,5 @@ coverage
 .agents/
 .scratch/
 .worktrees/
+*.zip
 
