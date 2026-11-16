@@ -142,6 +142,9 @@ npm run check
 
 # Package production distribution archive (thread-to-llm-v*.zip)
 npm run package
+
+# Unified release automation (SemVer bump, changelog update, package, commit, tag, and publish)
+npm run release -- [patch|minor|major] [--dry-run] [--publish]
 ```
 
 ---

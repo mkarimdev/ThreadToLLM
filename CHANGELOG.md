@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - initialize repository documentation and agents setup (`aded73d`)
 
 ### Maintenance
+- **changelog**: record automated changelog generation commit in CHANGELOG.md (`32cc983`)
 - **release**: clean up root distribution zip in afterAll hook (#16) (`6fe5058`)
 - **release**: extend timeout for distribution packaging integration test (#16) (`247d252`)
 - ignore .worktrees/ directory in eslint config (`c2192e9`)
