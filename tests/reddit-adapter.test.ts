@@ -567,25 +567,26 @@ describe('RedditAdapter', () => {
     });
   });
 
-  describe('Partial loading detection', () => {
-    it('sets isPartiallyLoaded: true when <shreddit-comment-tree-action> is present', () => {
+  describe('DOM-only extraction (partial load detection disabled)', () => {
+    it('sets isPartiallyLoaded: false and extracts available comments when pagination elements exist', () => {
       const doc = adapter.extract(partialTreeActionFixture);
 
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
       expect(doc.metadata.extractedCount).toBe(1);
     });
 
-    it('sets isPartiallyLoaded: true when <faceplate-partial> or <shreddit-async-loader> is present', () => {
+    it('sets isPartiallyLoaded: false when <faceplate-partial> or <shreddit-async-loader> is present', () => {
       const doc = adapter.extract(partialFaceplateFixture);
 
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+      expect(doc.metadata.extractedCount).toBe(1);
     });
 
-    it('sets isPartiallyLoaded: true when <shreddit-post> comment-count exceeds extracted count', () => {
+    it('sets isPartiallyLoaded: false when <shreddit-post> comment-count exceeds extracted count', () => {
       const doc = adapter.extract(partialCommentCountFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
     it('sets isPartiallyLoaded: false when thread has no unhydrated elements', () => {
@@ -595,106 +596,30 @@ describe('RedditAdapter', () => {
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: false when unhydrated loaders are only in global sidebar or user drawer', () => {
+    it('sets isPartiallyLoaded: false when unhydrated loaders are in global sidebar or user drawer', () => {
       const doc = adapter.extract(sidebarAndDrawerWidgetsFixture);
 
       expect(doc.metadata.extractedCount).toBe(2);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: false when comment-count discrepancy is within tolerance margin (<= 2 missing)', () => {
-      const doc = adapter.extract(toleranceMarginSmallDiscrepancyFixture);
-
-      expect(doc.metadata.extractedCount).toBe(2);
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
-    });
-
-    it('sets isPartiallyLoaded: true when comment-count discrepancy exceeds tolerance margin (> 2 missing)', () => {
-      const doc = adapter.extract(exceedsToleranceMarginFixture);
-
-      expect(doc.metadata.extractedCount).toBe(2);
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
-    });
-
-    it('sets isPartiallyLoaded: true when comment pagination trigger is present even if count is within tolerance', () => {
-      const doc = adapter.extract(toleranceWithinMarginWithPaginationTriggerFixture);
-
-      expect(doc.metadata.extractedCount).toBe(2);
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
-    });
-
-    it('sets isPartiallyLoaded: true when an unhydrated loader exists inside #comment-tree', () => {
+    it('sets isPartiallyLoaded: false and extracts available comments regardless of loaders inside comment tree', () => {
       const doc = adapter.extract(commentTreeScopedAsyncLoaderFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: true when an unhydrated loader exists inside a <shreddit-comment>', () => {
+    it('sets isPartiallyLoaded: false when an unhydrated loader exists inside a <shreddit-comment>', () => {
       const doc = adapter.extract(commentChildLoaderFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: true when an unclicked pagination button exists in comment tree', () => {
+    it('sets isPartiallyLoaded: false when an unclicked pagination button exists in comment tree', () => {
       const doc = adapter.extract(unclickedPaginationButtonFixture);
 
-      expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(true);
-    });
-
-    it('sets isPartiallyLoaded: false when loaders inside comments are non-comment widgets such as faceplate_hovercard', () => {
-      const container = document.createElement('div');
-      container.innerHTML = `
-        <shreddit-post id="t3_hovercard_post" post-title="Post" author="alice" permalink="/r/test/comments/hovercard" comment-count="26">
-        </shreddit-post>
-        <div id="comment-tree">
-          ${Array.from({ length: 25 }, (_, i) => `
-            <shreddit-comment thingid="c_${i}" author="user_${i}" score="1" depth="0">
-              <div slot="comment"><p>Comment text ${i}</p></div>
-              <shreddit-async-loader bundlename="faceplate_hovercard"></shreddit-async-loader>
-            </shreddit-comment>
-          `).join('')}
-        </div>
-      `;
-      const doc = adapter.extract(container);
-      expect(doc.metadata.extractedCount).toBe(25);
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
-    });
-
-    it('sets isPartiallyLoaded: false when an unclicked button is outside comment container in unrelated header', () => {
-      const container = document.createElement('div');
-      container.innerHTML = `
-        <header>
-          <button aria-label="Load more comments">View more comments</button>
-        </header>
-        <shreddit-post id="t3_header_btn" post-title="Post" author="alice" permalink="/r/test/comments/header" comment-count="1">
-        </shreddit-post>
-        <div id="comment-tree">
-          <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
-            <div slot="comment"><p>Only comment</p></div>
-          </shreddit-comment>
-        </div>
-      `;
-      const doc = adapter.extract(container);
-      expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
-    });
-
-    it('sets isPartiallyLoaded: false when loader src contains substring comments but does not match /comments/ endpoint', () => {
-      const container = document.createElement('div');
-      container.innerHTML = `
-        <shreddit-post id="t3_loader_sub" post-title="Post" author="alice" permalink="/r/test/comments/loader_sub" comment-count="1">
-        </shreddit-post>
-        <faceplate-partial src="/svc/shreddit/user_comments_summary"></faceplate-partial>
-        <div id="comment-tree">
-          <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
-            <div slot="comment"><p>Only comment</p></div>
-          </shreddit-comment>
-        </div>
-      `;
-      const doc = adapter.extract(container);
       expect(doc.metadata.extractedCount).toBe(1);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });

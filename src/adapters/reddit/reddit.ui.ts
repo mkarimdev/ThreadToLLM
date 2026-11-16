@@ -160,7 +160,8 @@ export class RedditUI implements PlatformUI {
     button.style.cursor = 'pointer';
     button.style.border = 'none';
     button.style.backgroundColor = BG_DEFAULT;
-    button.style.color = 'var(--color-neutral-content-weak, #576f76)';
+    button.style.color =
+      'var(--color-neutral-content, var(--color-neutral-content-strong, #ffffff))';
     button.style.userSelect = 'none';
     button.style.transition = 'background-color 0.15s ease';
 

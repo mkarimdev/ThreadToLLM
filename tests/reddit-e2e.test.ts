@@ -180,13 +180,13 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).not.toContain('https://styles.redditmedia.com/avatar_amr3k.png');
   });
 
-  it('end-to-end: handles non-text link submission and partial loading flags', async () => {
+  it('end-to-end: handles non-text link submission and extracts available elements', async () => {
     const markdown = await extractAndSerialize(linkPostRoot);
 
     expect(markdown).toContain('source: reddit');
     expect(markdown).toContain('title: "Official TypeScript 5.8 Release Notes"');
     expect(markdown).toContain('author: msft_announcer');
-    expect(markdown).toContain('isPartiallyLoaded: true');
+    expect(markdown).not.toContain('isPartiallyLoaded');
     expect(markdown).toContain('https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/');
     expect(markdown).toContain('- **[+40] enthusiast**: The performance improvements in 5.8 look substantial!');
   });
@@ -201,13 +201,13 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('- **[+10] user_a**: Loaded single comment.');
   });
 
-  it('end-to-end: accurately emits isPartiallyLoaded: true when comment tree has pending pagination', async () => {
+  it('end-to-end: extracts all available comments without partial loading flag', async () => {
     const markdown = await extractAndSerialize(pendingPaginationRoot);
 
     expect(markdown).toContain('source: reddit');
     expect(markdown).toContain('title: "E2E Thread with Pending Pagination"');
     expect(markdown).toContain('author: e2e_tester');
-    expect(markdown).toContain('isPartiallyLoaded: true');
+    expect(markdown).not.toContain('isPartiallyLoaded');
     expect(markdown).toContain('- **[+10] user_a**: First comment.');
   });
 });

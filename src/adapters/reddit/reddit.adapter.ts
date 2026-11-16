@@ -34,7 +34,6 @@ export class RedditAdapter implements PlatformAdapter {
     const originalPost = this.extractOriginalPost(postEl);
     const comments = this.extractCommentTree(domRoot, originalPost.author);
     const extractedCount = countComments(comments);
-    const isPartiallyLoaded = this.detectPartialLoad(domRoot, postEl, extractedCount);
 
     const metadata: ThreadMetadata = {
       source: 'reddit',
@@ -42,7 +41,7 @@ export class RedditAdapter implements PlatformAdapter {
       url: this.resolveRedditUrl(postEl.getAttribute('permalink') || ''),
       author: originalPost.author,
       extractedCount,
-      isPartiallyLoaded,
+      isPartiallyLoaded: false,
     };
 
     return {
@@ -50,147 +49,6 @@ export class RedditAdapter implements PlatformAdapter {
       originalPost,
       comments,
     };
-  }
-
-  private isGlobalPageWidget(el: Element): boolean {
-    return Boolean(
-      el.closest(
-        'aside, nav, header, [slot="sidebar"], [data-testid*="sidebar"], #sidebar, .sidebar, shreddit-drawer, [slot="drawer"], faceplate-drawer, [data-testid*="drawer"]'
-      )
-    );
-  }
-
-  private isCommentTreeLoader(el: Element): boolean {
-    if (this.isGlobalPageWidget(el)) {
-      return false;
-    }
-
-    const tagName = el.tagName.toLowerCase();
-
-    // 1. Unclicked comment pagination triggers
-    if (
-      tagName === 'shreddit-comment-tree-action' ||
-      tagName === 'shreddit-more-comments' ||
-      tagName === 'more-comments'
-    ) {
-      // For shreddit-comment-tree-action, verify it has an active pagination button or loader
-      if (tagName === 'shreddit-comment-tree-action') {
-        const hasTrigger = el.querySelector(
-          'button, [role="button"], faceplate-partial, shreddit-async-loader, shreddit-loading'
-        );
-        return Boolean(hasTrigger);
-      }
-      return true;
-    }
-
-    // 2. Generic loaders explicitly querying comments endpoint
-    const src = el.getAttribute('src') || el.getAttribute('data-src') || '';
-    if (/\/comments\//i.test(src)) {
-      return true;
-    }
-
-    // 3. Loaders directly inside comment tree container (not inside an individual comment)
-    const insideCommentTree = Boolean(
-      el.closest('#comment-tree, [id*="comment-tree"], shreddit-comment-tree-action')
-    );
-    const insideSingleComment = Boolean(el.closest('shreddit-comment'));
-
-    if (insideCommentTree && !insideSingleComment) {
-      return true;
-    }
-
-    // 4. Loaders inside an individual comment: only count if loading replies/more comments
-    // (ignores non-comment widgets like author hovercards: bundlename="faceplate_hovercard")
-    if (insideSingleComment) {
-      if (
-        tagName === 'shreddit-loading' ||
-        tagName === 'shreddit-more-comments' ||
-        tagName === 'more-comments'
-      ) {
-        return true;
-      }
-      const bundleName = el.getAttribute('bundlename')?.toLowerCase() || '';
-      if (bundleName.includes('comment') || bundleName.includes('repl')) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private hasUnclickedPaginationButton(domRoot: HTMLElement | Document | Element): boolean {
-    try {
-      const buttons = Array.from(domRoot.querySelectorAll('button'));
-      for (const btn of buttons) {
-        if (this.isGlobalPageWidget(btn)) {
-          continue;
-        }
-
-        // Strictly scope pagination buttons to comment containers (container, action bar, or comments)
-        if (
-          !btn.closest(
-            '#comment-tree, [id*="comment-tree"], shreddit-comment-tree-action, shreddit-comment'
-          )
-        ) {
-          continue;
-        }
-
-        const text = btn.textContent?.toLowerCase() || '';
-        const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
-        if (
-          text.includes('more comment') ||
-          text.includes('more repl') ||
-          ariaLabel.includes('more comment') ||
-          ariaLabel.includes('more repl')
-        ) {
-          return true;
-        }
-      }
-    } catch {
-      // Ignore query errors in restricted environments
-    }
-
-    return false;
-  }
-
-  private detectPartialLoad(
-    domRoot: HTMLElement | Document | Element,
-    postEl: Element,
-    extractedCount: number
-  ): boolean {
-    const candidateSelectors = [
-      'shreddit-comment-tree-action',
-      'shreddit-more-comments',
-      'more-comments',
-      'faceplate-partial',
-      'shreddit-async-loader',
-      'shreddit-loading',
-    ];
-
-    try {
-      const candidates = Array.from(domRoot.querySelectorAll(candidateSelectors.join(',')));
-      for (const el of candidates) {
-        if (this.isCommentTreeLoader(el)) {
-          return true;
-        }
-      }
-
-      if (this.hasUnclickedPaginationButton(domRoot)) {
-        return true;
-      }
-    } catch {
-      // Ignore query selector error if custom pseudo/selector isn't supported in all engines
-    }
-
-    const rawCommentCount = postEl.getAttribute('comment-count');
-    if (rawCommentCount !== null) {
-      const commentCount = parseInt(rawCommentCount, 10);
-      if (!isNaN(commentCount) && (commentCount - extractedCount) > COMMENT_COUNT_TOLERANCE_MARGIN) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   private extractCommentTree(
