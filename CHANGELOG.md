@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-16
+
+### Added
+- **release**: unify release automation and changelog generation modeled after TrioA (#13) (b802722)
+
+### Fixed
+- **ui**: restrict Thread Action to thread posts (#19) (3323329)
+
 ## [0.1.0] - 2026-11-16
 
 ### Added
