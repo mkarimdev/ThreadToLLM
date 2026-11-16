@@ -18,6 +18,13 @@ describe('RedditAdapter', () => {
   let partialFaceplateFixture: HTMLDivElement;
   let partialCommentCountFixture: HTMLDivElement;
   let fullyHydratedFixture: HTMLDivElement;
+  let sidebarAndDrawerWidgetsFixture: HTMLDivElement;
+  let toleranceMarginSmallDiscrepancyFixture: HTMLDivElement;
+  let exceedsToleranceMarginFixture: HTMLDivElement;
+  let toleranceWithinMarginWithPaginationTriggerFixture: HTMLDivElement;
+  let commentTreeScopedAsyncLoaderFixture: HTMLDivElement;
+  let commentChildLoaderFixture: HTMLDivElement;
+  let unclickedPaginationButtonFixture: HTMLDivElement;
   let commentMemeOnlyFixture: HTMLDivElement;
   let commentTextAndMediaFixture: HTMLDivElement;
   let commentWithAvatarFixture: HTMLDivElement;
@@ -235,6 +242,107 @@ describe('RedditAdapter', () => {
       <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
         <div slot="comment"><p>Only comment</p></div>
       </shreddit-comment>
+    `;
+
+    sidebarAndDrawerWidgetsFixture = document.createElement('div');
+    sidebarAndDrawerWidgetsFixture.innerHTML = `
+      <shreddit-post id="t3_side" post-title="Post with sidebar widgets" author="alice" permalink="/r/test/comments/side" comment-count="2">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+        </shreddit-comment>
+        <shreddit-comment thingid="c2" author="charlie" score="3" depth="1">
+          <div slot="comment"><p>Reply comment</p></div>
+        </shreddit-comment>
+      </div>
+      <aside>
+        <faceplate-partial src="/svc/shreddit/sidebar/recommended-communities"></faceplate-partial>
+        <shreddit-async-loader src="/svc/shreddit/sidebar/recent-posts"></shreddit-async-loader>
+      </aside>
+      <div slot="drawer">
+        <faceplate-partial src="/svc/shreddit/user-profile-drawer"></faceplate-partial>
+        <shreddit-async-loader src="/svc/shreddit/notifications"></shreddit-async-loader>
+      </div>
+    `;
+
+    toleranceMarginSmallDiscrepancyFixture = document.createElement('div');
+    toleranceMarginSmallDiscrepancyFixture.innerHTML = `
+      <shreddit-post id="t3_tol1" post-title="Post with 2 missing phantom comments" author="alice" permalink="/r/test/comments/tol1" comment-count="4">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+        </shreddit-comment>
+        <shreddit-comment thingid="c2" author="charlie" score="3" depth="0">
+          <div slot="comment"><p>Second comment</p></div>
+        </shreddit-comment>
+      </div>
+    `;
+
+    exceedsToleranceMarginFixture = document.createElement('div');
+    exceedsToleranceMarginFixture.innerHTML = `
+      <shreddit-post id="t3_tol2" post-title="Post with 3 missing comments" author="alice" permalink="/r/test/comments/tol2" comment-count="5">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+        </shreddit-comment>
+        <shreddit-comment thingid="c2" author="charlie" score="3" depth="0">
+          <div slot="comment"><p>Second comment</p></div>
+        </shreddit-comment>
+      </div>
+    `;
+
+    toleranceWithinMarginWithPaginationTriggerFixture = document.createElement('div');
+    toleranceWithinMarginWithPaginationTriggerFixture.innerHTML = `
+      <shreddit-post id="t3_tol3" post-title="Post with pagination trigger within count tolerance" author="alice" permalink="/r/test/comments/tol3" comment-count="3">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+        </shreddit-comment>
+        <shreddit-comment thingid="c2" author="charlie" score="3" depth="0">
+          <div slot="comment"><p>Second comment</p></div>
+        </shreddit-comment>
+        <shreddit-more-comments count="1"></shreddit-more-comments>
+      </div>
+    `;
+
+    commentTreeScopedAsyncLoaderFixture = document.createElement('div');
+    commentTreeScopedAsyncLoaderFixture.innerHTML = `
+      <shreddit-post id="t3_loader1" post-title="Post with loader in comment-tree" author="alice" permalink="/r/test/comments/loader1" comment-count="1">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+        </shreddit-comment>
+        <shreddit-async-loader></shreddit-async-loader>
+      </div>
+    `;
+
+    commentChildLoaderFixture = document.createElement('div');
+    commentChildLoaderFixture.innerHTML = `
+      <shreddit-post id="t3_loader2" post-title="Post with loader inside comment" author="alice" permalink="/r/test/comments/loader2" comment-count="1">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+          <shreddit-loading></shreddit-loading>
+        </shreddit-comment>
+      </div>
+    `;
+
+    unclickedPaginationButtonFixture = document.createElement('div');
+    unclickedPaginationButtonFixture.innerHTML = `
+      <shreddit-post id="t3_btn" post-title="Post with unclicked pagination button" author="alice" permalink="/r/test/comments/btn" comment-count="2">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>First comment</p></div>
+        </shreddit-comment>
+        <button aria-label="Load more comments">View 10 more replies</button>
+      </div>
     `;
 
     commentMemeOnlyFixture = document.createElement('div');
@@ -485,6 +593,55 @@ describe('RedditAdapter', () => {
 
       expect(doc.metadata.extractedCount).toBe(1);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('sets isPartiallyLoaded: false when unhydrated loaders are only in global sidebar or user drawer', () => {
+      const doc = adapter.extract(sidebarAndDrawerWidgetsFixture);
+
+      expect(doc.metadata.extractedCount).toBe(2);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('sets isPartiallyLoaded: false when comment-count discrepancy is within tolerance margin (<= 2 missing)', () => {
+      const doc = adapter.extract(toleranceMarginSmallDiscrepancyFixture);
+
+      expect(doc.metadata.extractedCount).toBe(2);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('sets isPartiallyLoaded: true when comment-count discrepancy exceeds tolerance margin (> 2 missing)', () => {
+      const doc = adapter.extract(exceedsToleranceMarginFixture);
+
+      expect(doc.metadata.extractedCount).toBe(2);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: true when comment pagination trigger is present even if count is within tolerance', () => {
+      const doc = adapter.extract(toleranceWithinMarginWithPaginationTriggerFixture);
+
+      expect(doc.metadata.extractedCount).toBe(2);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: true when an unhydrated loader exists inside #comment-tree', () => {
+      const doc = adapter.extract(commentTreeScopedAsyncLoaderFixture);
+
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: true when an unhydrated loader exists inside a <shreddit-comment>', () => {
+      const doc = adapter.extract(commentChildLoaderFixture);
+
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('sets isPartiallyLoaded: true when an unclicked pagination button exists in comment tree', () => {
+      const doc = adapter.extract(unclickedPaginationButtonFixture);
+
+      expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
     });
   });
 

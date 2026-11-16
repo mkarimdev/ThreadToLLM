@@ -50,25 +50,97 @@ export class RedditAdapter implements PlatformAdapter {
     };
   }
 
+  private isGlobalPageWidget(el: Element): boolean {
+    return Boolean(
+      el.closest(
+        'aside, nav, header, [slot="sidebar"], [data-testid*="sidebar"], #sidebar, .sidebar, shreddit-drawer, [slot="drawer"], faceplate-drawer, [data-testid*="drawer"]'
+      )
+    );
+  }
+
+  private isCommentTreeLoader(el: Element): boolean {
+    if (this.isGlobalPageWidget(el)) {
+      return false;
+    }
+
+    const tagName = el.tagName.toLowerCase();
+
+    // 1. Unclicked comment pagination triggers
+    if (
+      tagName === 'shreddit-comment-tree-action' ||
+      tagName === 'shreddit-more-comments' ||
+      tagName === 'more-comments'
+    ) {
+      return true;
+    }
+
+    // 2. Generic loaders explicitly querying comments endpoint
+    const src = el.getAttribute('src') || el.getAttribute('data-src') || '';
+    if (/\/comments\//i.test(src) || src.includes('comments')) {
+      return true;
+    }
+
+    // 3. Unhydrated loaders strictly scoped inside the comment tree container or individual comment
+    if (
+      el.closest(
+        '#comment-tree, [id*="comment-tree"], shreddit-comment, shreddit-comment-tree-action'
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private hasUnclickedPaginationButton(domRoot: HTMLElement | Document | Element): boolean {
+    try {
+      const buttons = Array.from(domRoot.querySelectorAll('button'));
+      for (const btn of buttons) {
+        if (this.isGlobalPageWidget(btn)) {
+          continue;
+        }
+
+        const text = btn.textContent?.toLowerCase() || '';
+        const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
+        if (
+          text.includes('more comment') ||
+          text.includes('more repl') ||
+          ariaLabel.includes('more comment') ||
+          ariaLabel.includes('more repl')
+        ) {
+          return true;
+        }
+      }
+    } catch {
+      // Ignore query errors in restricted environments
+    }
+
+    return false;
+  }
+
   private detectPartialLoad(
     domRoot: HTMLElement | Document | Element,
     postEl: Element,
     extractedCount: number
   ): boolean {
-    const unhydratedSelectors = [
+    const candidateSelectors = [
       'shreddit-comment-tree-action',
+      'shreddit-more-comments',
+      'more-comments',
       'faceplate-partial',
       'shreddit-async-loader',
       'shreddit-loading',
-      'shreddit-more-comments',
-      'more-comments',
     ];
 
     try {
-      const hasUnhydratedElement = Boolean(
-        domRoot.querySelector(unhydratedSelectors.join(','))
-      );
-      if (hasUnhydratedElement) {
+      const candidates = Array.from(domRoot.querySelectorAll(candidateSelectors.join(',')));
+      for (const el of candidates) {
+        if (this.isCommentTreeLoader(el)) {
+          return true;
+        }
+      }
+
+      if (this.hasUnclickedPaginationButton(domRoot)) {
         return true;
       }
     } catch {
@@ -78,7 +150,7 @@ export class RedditAdapter implements PlatformAdapter {
     const rawCommentCount = postEl.getAttribute('comment-count');
     if (rawCommentCount !== null) {
       const commentCount = parseInt(rawCommentCount, 10);
-      if (!isNaN(commentCount) && extractedCount < commentCount) {
+      if (!isNaN(commentCount) && (commentCount - extractedCount) > 2) {
         return true;
       }
     }

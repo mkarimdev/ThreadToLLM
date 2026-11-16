@@ -5,6 +5,8 @@ import { extractAndSerialize } from '../src/adapters';
 describe('extractAndSerialize (End-to-End Testing Seam)', () => {
   let textThreadRoot: HTMLDivElement;
   let linkPostRoot: HTMLDivElement;
+  let sidebarWidgetsRoot: HTMLDivElement;
+  let pendingPaginationRoot: HTMLDivElement;
 
   beforeAll(() => {
     textThreadRoot = document.createElement('div');
@@ -89,6 +91,52 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
         <button>Load more comments</button>
       </shreddit-comment-tree-action>
     `;
+
+    sidebarWidgetsRoot = document.createElement('div');
+    sidebarWidgetsRoot.innerHTML = `
+      <shreddit-post
+        id="t3_side_e2e"
+        post-title="E2E Thread with Sidebar Loaders"
+        author="e2e_tester"
+        score="75"
+        comment-count="3"
+        permalink="/r/webdev/comments/side_e2e"
+      >
+        <div slot="text-body"><p>Discussion body.</p></div>
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="user_a" score="10" depth="0">
+          <div slot="comment"><p>Loaded single comment.</p></div>
+        </shreddit-comment>
+      </div>
+      <aside>
+        <faceplate-partial src="/svc/shreddit/sidebar/recommended"></faceplate-partial>
+        <shreddit-async-loader src="/svc/shreddit/sidebar/trending"></shreddit-async-loader>
+      </aside>
+      <div slot="drawer">
+        <faceplate-partial src="/svc/shreddit/user-drawer"></faceplate-partial>
+      </div>
+    `;
+
+    pendingPaginationRoot = document.createElement('div');
+    pendingPaginationRoot.innerHTML = `
+      <shreddit-post
+        id="t3_pending_e2e"
+        post-title="E2E Thread with Pending Pagination"
+        author="e2e_tester"
+        score="80"
+        comment-count="2"
+        permalink="/r/webdev/comments/pending_e2e"
+      >
+        <div slot="text-body"><p>Discussion body.</p></div>
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="user_a" score="10" depth="0">
+          <div slot="comment"><p>First comment.</p></div>
+        </shreddit-comment>
+        <shreddit-more-comments count="5"></shreddit-more-comments>
+      </div>
+    `;
   });
 
   it('end-to-end: extracts DOM, filters noise, and serializes into expected token-dense Markdown', async () => {
@@ -141,5 +189,25 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('isPartiallyLoaded: true');
     expect(markdown).toContain('https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/');
     expect(markdown).toContain('- **[+40] enthusiast**: The performance improvements in 5.8 look substantial!');
+  });
+
+  it('end-to-end: ignores global page widgets and tolerance margin, emitting clean fully loaded frontmatter', async () => {
+    const markdown = await extractAndSerialize(sidebarWidgetsRoot);
+
+    expect(markdown).toContain('source: reddit');
+    expect(markdown).toContain('title: "E2E Thread with Sidebar Loaders"');
+    expect(markdown).toContain('author: e2e_tester');
+    expect(markdown).not.toContain('isPartiallyLoaded');
+    expect(markdown).toContain('- **[+10] user_a**: Loaded single comment.');
+  });
+
+  it('end-to-end: accurately emits isPartiallyLoaded: true when comment tree has pending pagination', async () => {
+    const markdown = await extractAndSerialize(pendingPaginationRoot);
+
+    expect(markdown).toContain('source: reddit');
+    expect(markdown).toContain('title: "E2E Thread with Pending Pagination"');
+    expect(markdown).toContain('author: e2e_tester');
+    expect(markdown).toContain('isPartiallyLoaded: true');
+    expect(markdown).toContain('- **[+10] user_a**: First comment.');
   });
 });
