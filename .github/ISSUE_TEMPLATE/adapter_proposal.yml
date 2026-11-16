@@ -1,0 +1,63 @@
+name: Platform Adapter Proposal
+description: Propose support for a new Host Platform (e.g., Hacker News, X / Twitter, Lobsters)
+title: "[Adapter Proposal]: "
+labels: ["needs-triage", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing support for a new Host Platform in ThreadToLLM!
+        ThreadToLLM uses a modular three-layer architecture where each platform has a decoupled `PlatformAdapter` (DOM -> `ThreadDocument`) and `PlatformUI` (mounting the Thread Action into the host DOM).
+  - type: input
+    id: platform_name
+    attributes:
+      label: Target Host Platform
+      description: Name of the platform (e.g., Hacker News, Lobsters, X / Twitter, Lemmy).
+      placeholder: Hacker News
+    validations:
+      required: true
+  - type: input
+    id: platform_homepage
+    attributes:
+      label: Platform URL / Domain
+      description: Base URL pattern (e.g., news.ycombinator.com).
+      placeholder: https://news.ycombinator.com
+    validations:
+      required: true
+  - type: textarea
+    id: example_urls
+    attributes:
+      label: Example Thread URLs
+      description: Provide 2-3 representative public discussion thread URLs from this platform (spanning shallow and deeply nested replies).
+      placeholder: |
+        - https://news.ycombinator.com/item?id=...
+        - https://news.ycombinator.com/item?id=...
+    validations:
+      required: true
+  - type: textarea
+    id: dom_complexity
+    attributes:
+      label: DOM Complexity & Hierarchy Notes
+      description: What is known about the platform's DOM structure? (e.g. static HTML vs SPA client hydration, nested tags vs indentation indentation/table layouts, how comments and deleted posts are represented).
+      placeholder: |
+        - Static HTML table layout with indent images
+        - Original Post is in the first tr/td
+        - Comments are rows with .ind img width denoting indentation depth
+    validations:
+      required: true
+  - type: textarea
+    id: ui_injection_target
+    attributes:
+      label: Proposed Thread Action Mount Point
+      description: Where in the host platform UI should the native Thread Action button be mounted?
+      placeholder: |
+        - In the subtext / action bar next to 'comments' link
+    validations:
+      required: false
+  - type: checkboxes
+    id: contributor_interest
+    attributes:
+      label: Contribution
+      description: Are you interested in implementing this adapter yourself?
+      options:
+        - label: I would like to implement this Platform Adapter and submit a Pull Request

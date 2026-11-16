@@ -1,0 +1,70 @@
+name: Bug Report
+description: Report an extraction failure, formatting bug, or UI defect on a discussion thread
+title: "[Bug]: "
+labels: ["needs-triage", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! Please provide the details below so we can reproduce and fix the problem.
+  - type: input
+    id: thread_url
+    attributes:
+      label: Thread URL
+      description: The full URL of the discussion thread where the issue occurred.
+      placeholder: https://www.reddit.com/r/technology/comments/...
+    validations:
+      required: true
+  - type: dropdown
+    id: reddit_ui
+    attributes:
+      label: Reddit UI Version
+      description: Which Reddit interface version were you browsing?
+      options:
+        - Modern Reddit (shreddit / 2024+ layout)
+        - New Reddit (redesign / new.reddit.com)
+        - Old Reddit (old.reddit.com)
+        - Other / Unsure
+    validations:
+      required: true
+  - type: input
+    id: browser_version
+    attributes:
+      label: Browser & Version
+      description: Your browser name and exact version (e.g., Chrome 122.0.6261.94, Brave 1.63).
+      placeholder: Chrome 122.0.6261.94
+    validations:
+      required: true
+  - type: textarea
+    id: expected_output
+    attributes:
+      label: Expected Behavior / Output
+      description: Describe what you expected to happen (e.g. expected Markdown output, button placement, micro-feedback).
+    validations:
+      required: true
+  - type: textarea
+    id: actual_output
+    attributes:
+      label: Actual Behavior / Output
+      description: Describe what actually happened (e.g. missing comments, truncated text, malformed Markdown, button not appearing).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Reproduction Steps
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Navigate to thread URL
+        2. Click 'Copy for LLM' button or press Alt+Shift+C
+        3. Paste clipboard into editor
+    validations:
+      required: false
+  - type: textarea
+    id: console_errors
+    attributes:
+      label: Browser Console Errors
+      description: Copy and paste any error logs from the browser developer console (Press F12 -> Console tab).
+      render: shell
+    validations:
+      required: false

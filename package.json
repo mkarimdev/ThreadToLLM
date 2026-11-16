@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Chrome extension to extract Reddit discussion threads and format them into token-dense Markdown for LLMs",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +12,8 @@
     "typecheck": "tsc --noEmit && tsc --project tsconfig.core.json --noEmit",
     "typecheck:core": "tsc --project tsconfig.core.json --noEmit",
     "test": "vitest run",
+    "package": "node scripts/package-release.mjs",
+    "generate:icons": "node scripts/generate-icons.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
