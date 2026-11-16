@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -74,11 +74,24 @@ describe('Release Packaging & Verification Seam', () => {
   });
 
   describe('Distribution Package Creation', () => {
+    let rootZipToCleanup: string | null = null;
+
+    afterAll(() => {
+      if (rootZipToCleanup && fs.existsSync(rootZipToCleanup)) {
+        try {
+          fs.unlinkSync(rootZipToCleanup);
+        } catch {
+          // ignore
+        }
+      }
+    });
+
     it('packages the production build into a valid distribution ZIP archive', () => {
       const result = packageRelease({
         rootDir,
         silent: true,
       });
+      rootZipToCleanup = result.rootZipPath;
 
       expect(result.version).toBe(packageJson.version);
       expect(fs.existsSync(result.zipPath)).toBe(true);
