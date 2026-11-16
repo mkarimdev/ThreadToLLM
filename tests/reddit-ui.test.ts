@@ -180,6 +180,51 @@ describe('RedditUI', () => {
       expect(barePost.contains(button)).toBe(true);
     });
 
+    it.each(['shreddit-feed', 'role="feed"'])(
+      'refuses to mount the Thread Action on a post inside %s',
+      (feedKind) => {
+        const feed =
+          feedKind === 'shreddit-feed'
+            ? document.createElement('shreddit-feed')
+            : document.createElement('div');
+        if (feedKind !== 'shreddit-feed') {
+          feed.setAttribute('role', 'feed');
+        }
+        const barePost = barePostTemplate.cloneNode(true) as HTMLElement;
+        feed.appendChild(barePost);
+
+        const button = redditUi.mountAction(barePost);
+
+        expect(button).toBeNull();
+        expect(barePost.querySelector('.thread-to-llm-action')).toBeNull();
+      }
+    );
+
+    it('mounts on a post inside a focused thread modal even when a feed is an ancestor', () => {
+      const feed = document.createElement('shreddit-feed');
+      const modal = document.createElement('faceplate-modal');
+      const barePost = barePostTemplate.cloneNode(true) as HTMLElement;
+      modal.appendChild(barePost);
+      feed.appendChild(modal);
+
+      const button = redditUi.mountAction(barePost);
+
+      expect(button).not.toBeNull();
+      expect(barePost.querySelector('.thread-to-llm-action')).not.toBeNull();
+    });
+
+    it('re-mounts when a stale injected marker remains after its action was removed', () => {
+      const barePost = barePostTemplate.cloneNode(true) as HTMLElement;
+      const firstButton = redditUi.mountAction(barePost);
+      expect(firstButton).not.toBeNull();
+
+      firstButton!.remove();
+      const secondButton = redditUi.mountAction(barePost);
+
+      expect(secondButton).not.toBeNull();
+      expect(barePost.querySelectorAll('.thread-to-llm-action')).toHaveLength(1);
+    });
+
     it('calls findShareButton exactly once during mountAction to prevent redundant traversals', () => {
       const spy = vi.spyOn(redditUi as unknown as { findShareButton: (el: HTMLElement) => HTMLElement | null }, 'findShareButton');
       const altPost = altPostTemplate.cloneNode(true) as HTMLElement;

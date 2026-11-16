@@ -145,6 +145,57 @@ describe('SPA Lifecycle Manager Seam (SPALifecycleManager)', () => {
     manager.stop();
   });
 
+  it('does not mount on posts nested inside a feed container', async () => {
+    const feed = document.createElement('shreddit-feed');
+    const feedPost = document.createElement('shreddit-post');
+    feed.appendChild(feedPost);
+    document.body.appendChild(feed);
+
+    const manager = new SPALifecycleManager({ ui: mockUi, root: document.body });
+    manager.start();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mockUi.mountAction).not.toHaveBeenCalledWith(feedPost);
+    expect(feedPost.querySelector('.thread-to-llm-action')).toBeNull();
+
+    manager.stop();
+  });
+
+  it('does not mount on posts when the host page type is a feed listing', () => {
+    const app = document.createElement('shreddit-app');
+    app.setAttribute('pagetype', 'community');
+    const post = document.createElement('shreddit-post');
+    app.appendChild(post);
+    document.body.appendChild(app);
+
+    const manager = new SPALifecycleManager({ ui: mockUi, root: document.body });
+    manager.start();
+
+    expect(mockUi.mountAction).not.toHaveBeenCalledWith(post);
+
+    manager.stop();
+  });
+
+  it('removes injected Thread Actions when navigation returns to a feed route', () => {
+    const app = document.createElement('shreddit-app');
+    app.setAttribute('pagetype', 'post_detail');
+    const post = document.createElement('shreddit-post');
+    app.appendChild(post);
+    document.body.appendChild(app);
+
+    const manager = new SPALifecycleManager({ ui: mockUi, root: document.body });
+    manager.start();
+    expect(post.querySelector('.thread-to-llm-action')).not.toBeNull();
+
+    // SPA navigation back to a feed listing re-renders the same host with a feed page type.
+    app.setAttribute('pagetype', 'home');
+    window.dispatchEvent(new Event('popstate'));
+
+    expect(post.querySelector('.thread-to-llm-action')).toBeNull();
+
+    manager.stop();
+  });
+
   it('does not trigger action bar re-evaluation on mutations within [slot="credit-bar"]', async () => {
     const post = document.createElement('shreddit-post');
     const creditBar = document.createElement('div');

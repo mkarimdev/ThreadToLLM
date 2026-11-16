@@ -3,7 +3,14 @@
  * Identifies host Reddit layout (Modern shreddit vs. unsupported Old Reddit or legacy redesign).
  */
 
+import { FEED_CONTAINER_SELECTOR, THREAD_MODAL_SELECTOR } from '../adapters';
 import { showToast } from './toast';
+
+/** Host page types whose posts are listings rather than a focal thread. */
+const FEED_PAGE_TYPES = new Set(['home', 'popular', 'all', 'community']);
+/** Thread permalinks always include a `/comments/{id}` segment. */
+const THREAD_ROUTE_PATTERN = /(?:^|\/)comments\/[^/?#]+/i;
+const REDDIT_HOST_PATTERN = /(?:^|\.)reddit\.com$/i;
 
 export type RedditLayoutType = 'modern' | 'old' | 'legacy-redesign' | 'unknown';
 
@@ -47,6 +54,48 @@ export function detectRedditLayout(context?: LayoutContext): RedditLayoutType {
   }
 
   return 'modern';
+}
+
+/**
+ * Returns true only when `post` anchors a hydrated discussion thread rather than a feed card.
+ *
+ * A post rendered inside a modal overlay is always eligible (thread over a feed). Otherwise,
+ * feed containers and feed page types are rejected. When the host page type is absent, the URL
+ * is consulted only on Reddit itself so host-agnostic DOM consumers are not misclassified.
+ */
+export function isThreadPost(post: HTMLElement | null | undefined, doc?: Document): boolean {
+  if (!post) {
+    return false;
+  }
+
+  if (post.closest(THREAD_MODAL_SELECTOR)) {
+    return true;
+  }
+
+  if (post.closest(FEED_CONTAINER_SELECTOR)) {
+    return false;
+  }
+
+  const pageType = resolvePageType(post, doc);
+  if (pageType !== null) {
+    return !FEED_PAGE_TYPES.has(pageType);
+  }
+
+  const location = doc?.defaultView?.location ?? (typeof window !== 'undefined' ? window.location : undefined);
+  if (!location || !REDDIT_HOST_PATTERN.test(location.hostname)) {
+    return true;
+  }
+
+  return THREAD_ROUTE_PATTERN.test(location.pathname);
+}
+
+function resolvePageType(post: HTMLElement, doc?: Document): string | null {
+  const app = post.closest('shreddit-app') ?? doc?.querySelector('shreddit-app');
+  if (!app) {
+    return null;
+  }
+  const value = app.getAttribute('pagetype') ?? app.getAttribute('page-type');
+  return value?.trim().toLowerCase() ?? null;
 }
 
 export function notifyIfUnsupportedLayout(options?: NotifyLayoutOptions): boolean {

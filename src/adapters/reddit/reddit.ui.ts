@@ -23,6 +23,10 @@ const FEEDBACK_DURATION_MS = 2500;
 const BUTTON_CLASS = 'thread-to-llm-action';
 const LABEL_CLASS = 'thread-to-llm-label';
 const INJECTED_DATA_KEY = 'threadToLlmInjected';
+/** Containers that render feed summary cards instead of a hydrated discussion thread. */
+export const FEED_CONTAINER_SELECTOR = 'shreddit-feed, [role="feed"]';
+/** Focused thread overlays rendered above a feed surface. */
+export const THREAD_MODAL_SELECTOR = 'faceplate-modal, shreddit-post-dialog, dialog[open], [role="dialog"]';
 
 const BG_DEFAULT =
   'var(--color-secondary-background, var(--color-neutral-background-weak, rgba(0, 0, 0, 0.05)))';
@@ -55,6 +59,15 @@ export class RedditUI implements PlatformUI {
       return null;
     }
 
+    // Defense in depth: a feed summary card never anchors a hydrated thread.
+    // Posts rendered inside a focused thread modal remain eligible even when a feed is an ancestor.
+    if (
+      !postElement.closest(THREAD_MODAL_SELECTOR) &&
+      postElement.closest(FEED_CONTAINER_SELECTOR)
+    ) {
+      return null;
+    }
+
     const existingButton = postElement.querySelector<HTMLElement>(`.${BUTTON_CLASS}`);
     const shareButton = this.findShareButton(postElement);
     const container = this.findActionBarContainer(postElement, shareButton);
@@ -72,7 +85,8 @@ export class RedditUI implements PlatformUI {
     }
 
     if (postElement.dataset[INJECTED_DATA_KEY] === 'true') {
-      return null;
+      // A stale marker means a previously injected action was removed (e.g. after feed navigation).
+      delete postElement.dataset[INJECTED_DATA_KEY];
     }
 
     const button = this.createActionButton(postElement, shareButton, domRoot);

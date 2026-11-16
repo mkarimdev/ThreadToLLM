@@ -4,6 +4,7 @@
  */
 
 import { PlatformUI, RedditUI } from '../adapters';
+import { isThreadPost } from './layout-detector';
 
 export interface SPALifecycleOptions {
   ui?: PlatformUI;
@@ -11,6 +12,7 @@ export interface SPALifecycleOptions {
 }
 
 const ACTION_BAR_SELECTORS = 'shreddit-post-action-bar, [slot="action-bar"], shreddit-post-share-button';
+const ACTION_BUTTON_SELECTOR = '.thread-to-llm-action';
 
 export class SPALifecycleManager {
   private readonly ui: PlatformUI;
@@ -68,21 +70,21 @@ export class SPALifecycleManager {
       return 0;
     }
 
+    this.removeIneligibleActions();
+
     let injectedCount = 0;
     const elementRoot = this.root as Element | Document;
 
     // Check if the root itself is a shreddit-post
     if ('tagName' in elementRoot && (elementRoot as Element).tagName?.toLowerCase() === 'shreddit-post') {
-      const mountedAction = this.ui.mountAction(elementRoot as HTMLElement);
-      if (mountedAction) {
+      if (this.mountIfEligible(elementRoot as HTMLElement)) {
         injectedCount++;
       }
     }
 
     const posts = elementRoot.querySelectorAll<HTMLElement>('shreddit-post');
     posts.forEach((post) => {
-      const mountedAction = this.ui.mountAction(post);
-      if (mountedAction) {
+      if (this.mountIfEligible(post)) {
         injectedCount++;
       }
     });
@@ -91,6 +93,8 @@ export class SPALifecycleManager {
   }
 
   private handleMutations(mutations: MutationRecord[]): void {
+    this.removeIneligibleActions();
+
     if (typeof window !== 'undefined' && window.location?.href !== this.lastUrl) {
       this.lastUrl = window.location.href;
       this.injectAll();
@@ -105,12 +109,12 @@ export class SPALifecycleManager {
         }
 
         const el = node as HTMLElement;
-        if (el.classList?.contains('thread-to-llm-action') || el.closest?.('.thread-to-llm-action')) {
+        if (el.classList?.contains('thread-to-llm-action') || el.closest?.(ACTION_BUTTON_SELECTOR)) {
           continue;
         }
 
         if (el.tagName?.toLowerCase() === 'shreddit-post') {
-          this.ui.mountAction(el);
+          this.mountIfEligible(el);
         } else {
           // If a dedicated action bar container is added into an existing post, re-evaluate the parent post
           const isActionBarCandidate =
@@ -120,16 +124,58 @@ export class SPALifecycleManager {
           if (isActionBarCandidate) {
             const parentPost = el.closest?.('shreddit-post') as HTMLElement | null;
             if (parentPost) {
-              this.ui.mountAction(parentPost);
+              this.mountIfEligible(parentPost);
             }
           }
 
           if (typeof el.querySelectorAll === 'function') {
             const nestedPosts = el.querySelectorAll<HTMLElement>('shreddit-post');
-            nestedPosts.forEach((post) => this.ui.mountAction(post));
+            nestedPosts.forEach((post) => this.mountIfEligible(post));
           }
         }
       }
     }
+  }
+
+  /**
+   * Mounts the Thread Action only on posts that anchor a hydrated thread.
+   */
+  private mountIfEligible(post: HTMLElement | null | undefined): HTMLElement | null {
+    if (!post || !isThreadPost(post, this.resolveDocument())) {
+      return null;
+    }
+
+    return this.ui.mountAction(post);
+  }
+
+  /**
+   * Removes Thread Actions left behind when a post is no longer a hydrated thread
+   * (e.g. SPA navigation back to a feed route, or a recommendation rail hydration).
+   */
+  private removeIneligibleActions(): void {
+    if (!this.root || !('querySelectorAll' in this.root)) {
+      return;
+    }
+
+    const doc = this.resolveDocument();
+    (this.root as Element | Document)
+      .querySelectorAll<HTMLElement>(ACTION_BUTTON_SELECTOR)
+      .forEach((action) => {
+        const post = action.closest<HTMLElement>('shreddit-post');
+        if (!post || !isThreadPost(post, doc)) {
+          action.remove();
+        }
+      });
+  }
+
+  private resolveDocument(): Document | undefined {
+    if (!this.root) {
+      return undefined;
+    }
+    const node = this.root as Node;
+    if (node.nodeType === 9) {
+      return node as unknown as Document;
+    }
+    return node.ownerDocument ?? (typeof document !== 'undefined' ? document : undefined);
   }
 }

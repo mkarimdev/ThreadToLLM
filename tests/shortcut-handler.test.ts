@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { executeKeyboardCopyTrigger } from '../src/extension/shortcut-handler';
+import { executeKeyboardCopyTrigger, findTargetPost } from '../src/extension/shortcut-handler';
 
 describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
   let clipboardMock: { writeText: ReturnType<typeof vi.fn> };
@@ -100,6 +100,53 @@ describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
   it('handles scenario when no post exists on page without throwing', async () => {
     const handled = await executeKeyboardCopyTrigger({
       document: document,
+      clipboard: clipboardMock,
+      toastFn: toastMock,
+    });
+
+    expect(handled).toBe(false);
+    expect(clipboardMock.writeText).not.toHaveBeenCalled();
+  });
+
+  it('findTargetPost returns no target on a feed listing', () => {
+    const app = document.createElement('shreddit-app');
+    app.setAttribute('pagetype', 'home');
+    const feed = document.createElement('shreddit-feed');
+    const feedPost = document.createElement('shreddit-post');
+    feed.appendChild(feedPost);
+    app.appendChild(feed);
+    document.body.appendChild(app);
+
+    expect(findTargetPost(document)).toBeNull();
+  });
+
+  it('findTargetPost prefers the focal thread post over recommendation feed cards', () => {
+    const app = document.createElement('shreddit-app');
+    app.setAttribute('pagetype', 'post_detail');
+    const focalPost = document.createElement('shreddit-post');
+    app.appendChild(focalPost);
+
+    const recommendations = document.createElement('shreddit-feed');
+    const recommendedPost = document.createElement('shreddit-post');
+    recommendations.appendChild(recommendedPost);
+    app.appendChild(recommendations);
+    document.body.appendChild(app);
+
+    expect(findTargetPost(document)).toBe(focalPost);
+  });
+
+  it('does not copy anything when the trigger fires on a feed listing', async () => {
+    const app = document.createElement('shreddit-app');
+    app.setAttribute('pagetype', 'all');
+    const feed = document.createElement('shreddit-feed');
+    const feedPost = document.createElement('shreddit-post');
+    feedPost.setAttribute('post-title', 'Feed card');
+    feed.appendChild(feedPost);
+    app.appendChild(feed);
+    document.body.appendChild(app);
+
+    const handled = await executeKeyboardCopyTrigger({
+      document,
       clipboard: clipboardMock,
       toastFn: toastMock,
     });

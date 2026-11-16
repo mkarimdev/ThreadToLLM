@@ -3,9 +3,15 @@
  * Handles keyboard shortcut copying with input focus suppression and subtle toast feedback (ADR-0003, ADR-0008).
  */
 
-import { RedditAdapter, PlatformAdapter, findThreadRoot } from '../adapters';
+import {
+  RedditAdapter,
+  PlatformAdapter,
+  THREAD_MODAL_SELECTOR,
+  findThreadRoot,
+} from '../adapters';
 import { FilterPipeline, MarkdownSerializer, countComments } from '../core';
 import { getDeepActiveElement, isEditableElement } from './focus-guard';
+import { isThreadPost } from './layout-detector';
 import { showToast } from './toast';
 
 export interface ShortcutTriggerOptions {
@@ -17,25 +23,24 @@ export interface ShortcutTriggerOptions {
   serializer?: MarkdownSerializer;
 }
 
+const MAIN_THREAD_SELECTOR =
+  'main, #main-content, shreddit-app[page-type="post"], shreddit-app[pagetype="post_detail"]';
+
 /**
- * Finds target post element, prioritizing active modal/dialog overlays over background feeds.
+ * Finds a hydrated thread post, prioritizing active modal/dialog overlays over background feeds.
+ * Feed summary cards are never valid targets, so shortcuts on feed surfaces do nothing.
  */
 export function findTargetPost(doc: Document): HTMLElement | null {
-  const modalPost = doc.querySelector<HTMLElement>(
-    'faceplate-modal shreddit-post, dialog shreddit-post, [role="dialog"] shreddit-post, shreddit-post-dialog shreddit-post'
+  const posts = Array.from(doc.querySelectorAll<HTMLElement>('shreddit-post')).filter((post) =>
+    isThreadPost(post, doc)
   );
-  if (modalPost) {
-    return modalPost;
-  }
 
-  const mainPost = doc.querySelector<HTMLElement>(
-    'main shreddit-post, shreddit-app[page-type="post"] shreddit-post, #main-content shreddit-post'
+  return (
+    posts.find((post) => post.closest(THREAD_MODAL_SELECTOR)) ??
+    posts.find((post) => post.closest(MAIN_THREAD_SELECTOR)) ??
+    posts[0] ??
+    null
   );
-  if (mainPost) {
-    return mainPost;
-  }
-
-  return doc.querySelector<HTMLElement>('shreddit-post');
 }
 
 export async function executeKeyboardCopyTrigger(
