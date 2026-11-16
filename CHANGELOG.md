@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-11-16
 
 ### Added
+- **release**: automate SemVer changelog generation and add CHANGELOG.md (#13) (`dbcc352`)
 - **release**: add automated release workflow for tags (#17) (`5e4583a`)
 - **release**: implement automated release packaging and verification seam (#16) (`0f6e286`)
 - **branding**: add extension icons and register in manifest (#14) (`fa1582f`)
