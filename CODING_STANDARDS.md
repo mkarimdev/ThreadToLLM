@@ -12,11 +12,13 @@ Judgement calls and architectural rules enforced during code review.
 - **Accurate Pipeline Feedback**: In-page micro-feedback and user-facing count metrics must reflect the post-pipeline filtered thread document rather than raw pre-filter DOM node totals.
 - **Pure Domain Traversals**: Recursive operations, aggregations, or queries over canonical Intermediate Representations (`ThreadDocument`, `CommentNode[]`) must be declared as pure functions in `src/core/` rather than re-implemented inside UI or platform adapters.
 - **Token-Dense Frontmatter**: Serialized YAML frontmatter emitted for LLM consumption must emit optional metadata flags conditionally (omitting negative or default states) and avoid internal UI counters to maximize prompt token density.
+- **DOM-Availability Extraction**: Platform adapters must extract currently hydrated DOM elements without speculating or asserting on unhydrated host SPA state (`isPartiallyLoaded`). Browser extensions should prioritize synchronous fidelity over host background hydration guesswork.
 
 ## Extension Architecture
 
 - **Single Dispatch Channel for Commands**: When a browser action or shortcut is registered via `chrome.commands` and routed through the service worker, content scripts must not attach redundant in-page DOM keyboard listeners (`keydown`/`keyup`). Global extension commands must have a single authoritative dispatch channel to prevent double-firing and race conditions.
 - **Late Hydration Upgrading**: Platform UI adapters using fallback mount points (e.g. mounting directly to a container before dedicated action bars hydrate) must support relocating fallback elements into dedicated native containers if they hydrate in subsequent mutations.
+- **Host Platform Styling Fidelity**: Injected action buttons must match host platform primary interactive content contrast tokens (`--color-neutral-content`, `currentColor`) rather than metadata/subtext tokens (`--color-neutral-content-weak`), and must inspect and inherit sibling margins (`margin-inline-start`) rather than assuming parent container flex `gap`.
 
 ## Testing Practices
 

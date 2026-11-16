@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeAll } from 'vitest';
-import { extractAndSerialize } from '../src/adapters';
+import { extractAndSerialize, RedditUI } from '../src/adapters';
+import { createRealRedditThreadFixture } from './fixtures/real-reddit-thread.fixture';
 
 describe('extractAndSerialize (End-to-End Testing Seam)', () => {
   let textThreadRoot: HTMLDivElement;
@@ -209,5 +210,38 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('author: e2e_tester');
     expect(markdown).not.toContain('isPartiallyLoaded');
     expect(markdown).toContain('- **[+10] user_a**: First comment.');
+  });
+
+  it('end-to-end: extracts real-world Modern Reddit fixture with hovercard loaders, action bar spacing, and memes', async () => {
+    const fixtureRoot = createRealRedditThreadFixture();
+    const markdown = await extractAndSerialize(fixtureRoot);
+
+    // Frontmatter assertions
+    expect(markdown).toContain('source: reddit');
+    expect(markdown).toContain('title: "Gemini blocked me from security auditing my OWN site?"');
+    expect(markdown).toContain('author: Accurate-Skill3425');
+    expect(markdown).not.toContain('isPartiallyLoaded');
+
+    // Post content
+    expect(markdown).toContain('I was running the security audit skill when Gemini Flash hit a safety block.');
+
+    // Meme-only comment with no empty bullet
+    expect(markdown).toContain('- **[+14] amr3k**: https://preview.redd.it/meme-sample.jpeg');
+    expect(markdown).not.toContain('- **[+14] amr3k**:\n');
+
+    // Top-level comment + OP nested reply with (OP) badge
+    expect(markdown).toContain('- **[+7] Small_Summer5817**: If the source code is local, it will audit it.');
+    expect(markdown).toContain('  - **[+14] Accurate-Skill3425 (OP)**: I am inside the codebase local folder.');
+
+    // UI mount verification
+    const postEl = fixtureRoot.querySelector('shreddit-post') as HTMLElement;
+    const ui = new RedditUI();
+    const button = ui.mountAction(postEl);
+
+    expect(button).not.toBeNull();
+    const shareBtn = postEl.querySelector('shreddit-post-share-button')!;
+    expect(shareBtn.nextElementSibling).toBe(button);
+    expect(button?.style.marginLeft).toContain('var(--spacing-xs');
+    expect(button?.style.color).toContain('var(--color-neutral-content');
   });
 });

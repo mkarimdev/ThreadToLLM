@@ -50,4 +50,29 @@ describe('CSS Selector Mechanical Guardrails', () => {
 
     expect(violations).toEqual([]);
   });
+
+  it('ensures no querySelector in src/ targets slot="credit-bar" as an action bar mount container', () => {
+    const srcDir = path.resolve(__dirname, '../src');
+    const sourceFiles = getAllSourceFiles(srcDir);
+    const BANNED_MOUNT_QUERY_PATTERN = /(?:querySelector|querySelectorAll)\s*\(\s*['"`][^'"`]*slot=["']credit-bar["'][^'"`]*['"`]\s*\)/;
+
+    const violations: { file: string; line: number; text: string }[] = [];
+
+    for (const file of sourceFiles) {
+      const content = fs.readFileSync(file, 'utf-8');
+      const lines = content.split('\n');
+
+      lines.forEach((lineText, index) => {
+        if (BANNED_MOUNT_QUERY_PATTERN.test(lineText)) {
+          violations.push({
+            file: path.relative(path.resolve(__dirname, '..'), file),
+            line: index + 1,
+            text: lineText.trim(),
+          });
+        }
+      });
+    }
+
+    expect(violations).toEqual([]);
+  });
 });
