@@ -1,6 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { detectRedditLayout, notifyIfUnsupportedLayout } from '../src/extension/layout-detector';
+import {
+  detectRedditLayout,
+  isUnsupportedLayout,
+  notifyIfUnsupportedLayout,
+} from '../src/extension/layout-detector';
 
 describe('Layout Detector Seam (detectRedditLayout)', () => {
   beforeEach(() => {
@@ -56,6 +60,35 @@ describe('Layout Detector Seam (detectRedditLayout)', () => {
       document: document,
     });
     expect(layout).toBe('modern');
+  });
+
+  describe('isUnsupportedLayout', () => {
+    it('classifies old.reddit.com as unsupported without notifying', () => {
+      const unsupported = isUnsupportedLayout({
+        hostname: 'old.reddit.com',
+        document: document,
+      });
+      expect(unsupported).toBe(true);
+    });
+
+    it('classifies legacy redesign (new.reddit.com) as unsupported', () => {
+      const unsupported = isUnsupportedLayout({
+        hostname: 'new.reddit.com',
+        document: document,
+      });
+      expect(unsupported).toBe(true);
+    });
+
+    it('classifies the modern shreddit layout as supported', () => {
+      const shredditApp = document.createElement('shreddit-app');
+      document.body.appendChild(shredditApp);
+
+      const unsupported = isUnsupportedLayout({
+        hostname: 'www.reddit.com',
+        document: document,
+      });
+      expect(unsupported).toBe(false);
+    });
   });
 
   describe('notifyIfUnsupportedLayout', () => {

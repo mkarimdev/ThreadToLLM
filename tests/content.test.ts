@@ -11,7 +11,7 @@ describe('Content Script Integration Seam (initialize)', () => {
     document.body.innerHTML = '';
   });
 
-  it('aborts initialization and alerts user on unsupported old reddit layout', () => {
+  it('initializes silently on unsupported old reddit layout without showing a toast', () => {
     const toastSpy = vi.fn();
     const siteTable = document.createElement('div');
     siteTable.id = 'siteTable';
@@ -24,8 +24,25 @@ describe('Content Script Integration Seam (initialize)', () => {
     });
 
     expect(runtime.isSupported).toBe(false);
-    expect(toastSpy).toHaveBeenCalledTimes(1);
-    expect(toastSpy.mock.calls[0][0]).toContain('Modern Reddit');
+    expect(toastSpy).not.toHaveBeenCalled();
+
+    runtime.cleanup();
+  });
+
+  it('initializes silently on unsupported legacy redesign layout without showing a toast', () => {
+    const toastSpy = vi.fn();
+    const container = document.createElement('div');
+    container.id = '2x-container';
+    document.body.appendChild(container);
+
+    const runtime = initialize({
+      hostname: 'new.reddit.com',
+      document: document,
+      toastFn: toastSpy,
+    });
+
+    expect(runtime.isSupported).toBe(false);
+    expect(toastSpy).not.toHaveBeenCalled();
 
     runtime.cleanup();
   });
@@ -42,12 +59,12 @@ describe('Content Script Integration Seam (initialize)', () => {
       toastFn: toastSpy,
     });
 
-    expect(toastSpy).toHaveBeenCalledTimes(1);
+    expect(toastSpy).not.toHaveBeenCalled();
 
     const handled = await runtime.handleMessage({ type: 'TRIGGER_COPY_THREAD' });
     expect(handled).toBe(false);
-    expect(toastSpy).toHaveBeenCalledTimes(2);
-    expect(toastSpy.mock.calls[1][0]).toContain('switch to modern Reddit');
+    expect(toastSpy).toHaveBeenCalledTimes(1);
+    expect(toastSpy.mock.calls[0][0]).toContain('switch to modern Reddit');
 
     runtime.cleanup();
   });

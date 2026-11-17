@@ -98,15 +98,24 @@ function resolvePageType(post: HTMLElement, doc?: Document): string | null {
   return value?.trim().toLowerCase() ?? null;
 }
 
+/**
+ * Silently classifies whether the host page uses an unsupported layout.
+ * Callers that only need the capability check (e.g. page-load initialization) use this
+ * to avoid surfacing a toast before the user has actually triggered the extension.
+ */
+export function isUnsupportedLayout(context?: LayoutContext): boolean {
+  const layout = detectRedditLayout(context);
+  return layout === 'old' || layout === 'legacy-redesign';
+}
+
 export function notifyIfUnsupportedLayout(options?: NotifyLayoutOptions): boolean {
-  const layout = detectRedditLayout(options);
-  if (layout === 'old' || layout === 'legacy-redesign') {
-    const toastFn = options?.toastFn ?? showToast;
-    toastFn(
-      'ThreadToLLM requires Modern Reddit (shreddit). Please switch to modern Reddit (www.reddit.com) to extract threads.',
-      { type: 'warning', durationMs: 6000 }
-    );
-    return true;
+  if (!isUnsupportedLayout(options)) {
+    return false;
   }
-  return false;
+  const toastFn = options?.toastFn ?? showToast;
+  toastFn(
+    'ThreadToLLM requires Modern Reddit (shreddit). Please switch to modern Reddit (www.reddit.com) to extract threads.',
+    { type: 'warning', durationMs: 6000 }
+  );
+  return true;
 }

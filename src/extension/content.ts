@@ -4,7 +4,11 @@
  */
 
 import { SPALifecycleManager } from './spa-lifecycle';
-import { notifyIfUnsupportedLayout, NotifyLayoutOptions } from './layout-detector';
+import {
+  isUnsupportedLayout,
+  notifyIfUnsupportedLayout,
+  NotifyLayoutOptions,
+} from './layout-detector';
 import { executeKeyboardCopyTrigger, ShortcutTriggerOptions } from './shortcut-handler';
 import { showToast } from './toast';
 
@@ -20,11 +24,12 @@ export interface ContentRuntime {
 export function initialize(options?: ContentRuntimeOptions): ContentRuntime {
   const doc = options?.document ?? (typeof document !== 'undefined' ? document : undefined);
 
-  // Check for unsupported layouts (Old Reddit, legacy redesign)
-  const isUnsupported = notifyIfUnsupportedLayout({
+  // Detect unsupported layouts silently on page load. The explanatory toast is
+  // deferred until the user actually triggers the extension, so browsing Old Reddit
+  // or the legacy redesign is not interrupted by a recurring warning.
+  const isUnsupported = isUnsupportedLayout({
     hostname: options?.hostname,
     document: doc,
-    toastFn: options?.toastFn ?? showToast,
   });
 
   if (isUnsupported) {
