@@ -3,8 +3,10 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { RedditUI } from '../src/adapters/reddit/reddit.ui';
 import type { PlatformUI } from '../src/adapters/ui.interface';
 
-function createFailingClipboard(): { writeText: ReturnType<typeof vi.fn> } {
-  return { writeText: vi.fn().mockRejectedValue(new Error('Clipboard denied')) };
+type WriteTextMock = ReturnType<typeof vi.fn<(text: string) => Promise<void>>>;
+
+function createFailingClipboard(): { writeText: WriteTextMock } {
+  return { writeText: vi.fn<(text: string) => Promise<void>>().mockRejectedValue(new Error('Clipboard denied')) };
 }
 
 describe('RedditUI', () => {
@@ -273,13 +275,13 @@ describe('RedditUI', () => {
   describe('Seam 2: Action Trigger & Clipboard Dispatch', () => {
     let threadRoot: HTMLDivElement;
     let postElement: HTMLElement;
-    let mockClipboard: { writeText: ReturnType<typeof vi.fn> };
+    let mockClipboard: { writeText: WriteTextMock };
     let redditUi: RedditUI;
 
     beforeEach(() => {
       threadRoot = templateRoot.cloneNode(true) as HTMLDivElement;
       postElement = threadRoot.querySelector('shreddit-post') as HTMLElement;
-      mockClipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+      mockClipboard = { writeText: vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined) };
       redditUi = new RedditUI({ clipboard: mockClipboard });
     });
 
@@ -381,7 +383,7 @@ describe('RedditUI', () => {
   describe('Seam 3: Micro-Feedback State Transition & Reset', () => {
     let threadRoot: HTMLDivElement;
     let postElement: HTMLElement;
-    let mockClipboard: { writeText: ReturnType<typeof vi.fn> };
+    let mockClipboard: { writeText: WriteTextMock };
     let redditUi: RedditUI;
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -391,7 +393,7 @@ describe('RedditUI', () => {
 
       threadRoot = templateRoot.cloneNode(true) as HTMLDivElement;
       postElement = threadRoot.querySelector('shreddit-post') as HTMLElement;
-      mockClipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+      mockClipboard = { writeText: vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined) };
       redditUi = new RedditUI({ clipboard: mockClipboard });
     });
 

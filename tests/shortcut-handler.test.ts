@@ -1,15 +1,19 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { showToast } from '../src/extension/toast';
 import { executeKeyboardCopyTrigger, findTargetPost } from '../src/extension/shortcut-handler';
 
+type WriteTextMock = ReturnType<typeof vi.fn<(text: string) => Promise<void>>>;
+type ToastMock = ReturnType<typeof vi.fn<typeof showToast>>;
+
 describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
-  let clipboardMock: { writeText: ReturnType<typeof vi.fn> };
-  let toastMock: ReturnType<typeof vi.fn>;
+  let clipboardMock: { writeText: WriteTextMock };
+  let toastMock: ToastMock;
 
   beforeEach(() => {
     document.body.innerHTML = '';
-    clipboardMock = { writeText: vi.fn().mockResolvedValue(undefined) };
-    toastMock = vi.fn();
+    clipboardMock = { writeText: vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined) };
+    toastMock = vi.fn<typeof showToast>();
   });
 
   it('suppresses copy when activeElement is an input', async () => {
@@ -289,7 +293,7 @@ describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
   });
 });
 
-function expectErrorToast(toastMock: ReturnType<typeof vi.fn>): void {
+function expectErrorToast(toastMock: ToastMock): void {
   expect(toastMock).toHaveBeenCalledWith(expect.stringContaining('Failed to copy'), {
     type: 'error',
   });
