@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-17
+
+### Added
+- **adapter**: support rich text formatting in post and comment bodies (#21) (c184a11)
+
+### Fixed
+- **adapter**: preserve paragraph breaks inside nested content containers (#21) (1e3a623)
+
+### Maintenance
+- codify retro findings into fixture, guardrail, and steering docs (af3c2f6)
+
 ## [0.1.1] - 2026-11-16
 
 ### Added

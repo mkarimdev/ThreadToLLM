@@ -1,6 +1,6 @@
 {
   "name": "thread-to-llm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Chrome extension to extract Reddit discussion threads and format them into token-dense Markdown for LLMs",
   "license": "MIT",
