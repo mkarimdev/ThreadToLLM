@@ -19,6 +19,7 @@ Judgement calls and architectural rules enforced during code review.
 - **Single Dispatch Channel for Commands**: When a browser action or shortcut is registered via `chrome.commands` and routed through the service worker, content scripts must not attach redundant in-page DOM keyboard listeners (`keydown`/`keyup`). Global extension commands must have a single authoritative dispatch channel to prevent double-firing and race conditions.
 - **Late Hydration Upgrading**: Platform UI adapters using fallback mount points (e.g. mounting directly to a container before dedicated action bars hydrate) must support relocating fallback elements into dedicated native containers if they hydrate in subsequent mutations.
 - **Host Platform Styling Fidelity**: Injected action buttons must match host platform primary interactive content contrast tokens (`--color-neutral-content`, `currentColor`) rather than metadata/subtext tokens (`--color-neutral-content-weak`), and must inspect and inherit sibling margins (`margin-inline-start`) rather than assuming parent container flex `gap`.
+- **Visible Failure Feedback**: Extraction and clipboard failures must surface user-visible feedback (Thread Action Micro-Feedback for clicks, an error toast for shortcuts), with Thread Action failures also logging a diagnostic to the console. Expected non-actions (editing a field, no thread target, feed listings) must not surface failure feedback.
 
 ## Testing Practices
 

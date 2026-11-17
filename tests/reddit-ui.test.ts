@@ -3,6 +3,10 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { RedditUI } from '../src/adapters/reddit/reddit.ui';
 import type { PlatformUI } from '../src/adapters/ui.interface';
 
+function createFailingClipboard(): { writeText: ReturnType<typeof vi.fn> } {
+  return { writeText: vi.fn().mockRejectedValue(new Error('Clipboard denied')) };
+}
+
 describe('RedditUI', () => {
   let templateRoot: HTMLDivElement;
   let barePostTemplate: HTMLElement;
@@ -379,9 +383,11 @@ describe('RedditUI', () => {
     let postElement: HTMLElement;
     let mockClipboard: { writeText: ReturnType<typeof vi.fn> };
     let redditUi: RedditUI;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
       vi.useFakeTimers();
+      consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       threadRoot = templateRoot.cloneNode(true) as HTMLDivElement;
       postElement = threadRoot.querySelector('shreddit-post') as HTMLElement;
@@ -391,6 +397,7 @@ describe('RedditUI', () => {
 
     afterEach(() => {
       vi.useRealTimers();
+      consoleErrorSpy.mockRestore();
     });
 
     it('transitions button label to "Copied [N] comments!" reflecting filtered comments copied', async () => {
@@ -445,8 +452,8 @@ describe('RedditUI', () => {
       expect(label?.textContent).toBe('Copy for AI');
     });
 
-    it('does not display copied feedback if clipboard write fails', async () => {
-      const failingClipboard = { writeText: vi.fn().mockRejectedValue(new Error('Clipboard denied')) };
+    it('shows "Failed to copy" in the Thread Action when clipboard write fails', async () => {
+      const failingClipboard = createFailingClipboard();
       const failingUi = new RedditUI({ clipboard: failingClipboard });
 
       const button = failingUi.mountAction(postElement, threadRoot);
@@ -455,8 +462,51 @@ describe('RedditUI', () => {
       button?.click();
       await vi.advanceTimersByTimeAsync(100);
 
-      // Should not falsely claim comments were copied
+      expect(label?.textContent).toBe('Failed to copy');
+    });
+
+    it('logs the failure to the console when clipboard write fails', async () => {
+      const failingClipboard = createFailingClipboard();
+      const failingUi = new RedditUI({ clipboard: failingClipboard });
+
+      const button = failingUi.mountAction(postElement, threadRoot);
+      button?.click();
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it('resets "Failed to copy" back to "Copy for AI" after exactly 2.5 seconds', async () => {
+      const failingClipboard = createFailingClipboard();
+      const failingUi = new RedditUI({ clipboard: failingClipboard });
+
+      const button = failingUi.mountAction(postElement, threadRoot);
+      const label = button?.querySelector('.thread-to-llm-label');
+
+      button?.click();
+      await vi.advanceTimersByTimeAsync(100);
+      expect(label?.textContent).toBe('Failed to copy');
+
+      await vi.advanceTimersByTimeAsync(2500);
       expect(label?.textContent).toBe('Copy for AI');
+    });
+
+    it('shows "Failed to copy" feedback when thread extraction fails', async () => {
+      const failingAdapter = {
+        extract: vi.fn(() => {
+          throw new Error('Extraction failed');
+        }),
+      };
+      const failingUi = new RedditUI({ adapter: failingAdapter, clipboard: mockClipboard });
+
+      const button = failingUi.mountAction(postElement, threadRoot);
+      const label = button?.querySelector('.thread-to-llm-label');
+
+      button?.click();
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(label?.textContent).toBe('Failed to copy');
+      expect(mockClipboard.writeText).not.toHaveBeenCalled();
     });
   });
 });

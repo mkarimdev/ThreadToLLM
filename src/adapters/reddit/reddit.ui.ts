@@ -211,8 +211,9 @@ export class RedditUI implements PlatformUI {
       try {
         const copiedCount = await this.executeExtractionAndCopy(postElement, domRoot);
         setFeedback(`Copied ${copiedCount} comments!`);
-      } catch {
-        // Silently preserve state if error occurs
+      } catch (error) {
+        console.error('[ThreadToLLM] Failed to copy thread for AI:', error);
+        setFeedback('Failed to copy');
       }
     });
 

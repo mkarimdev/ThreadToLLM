@@ -106,6 +106,7 @@ describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
 
     expect(handled).toBe(false);
     expect(clipboardMock.writeText).not.toHaveBeenCalled();
+    expect(toastMock).not.toHaveBeenCalled();
   });
 
   it('findTargetPost returns no target on a feed listing', () => {
@@ -153,6 +154,7 @@ describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
 
     expect(handled).toBe(false);
     expect(clipboardMock.writeText).not.toHaveBeenCalled();
+    expect(toastMock).not.toHaveBeenCalled();
   });
 
   it('prioritizes post inside modal/dialog over background feed posts', async () => {
@@ -228,4 +230,76 @@ describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
     expect(copiedText).toContain('Modal-only comment.');
     expect(copiedText).not.toContain('Background Feed Card');
   });
+
+  it('renders an error toast when the clipboard write fails', async () => {
+    document.body.appendChild(createThreadPost());
+    clipboardMock.writeText.mockRejectedValue(new Error('Clipboard denied'));
+
+    const handled = await executeKeyboardCopyTrigger({
+      document,
+      clipboard: clipboardMock,
+      toastFn: toastMock,
+    });
+
+    expect(handled).toBe(false);
+    expectErrorToast(toastMock);
+  });
+
+  it('renders an error toast when thread extraction fails', async () => {
+    document.body.appendChild(createThreadPost());
+    const failingAdapter = {
+      extract: vi.fn(() => {
+        throw new Error('Extraction failed');
+      }),
+    };
+
+    const handled = await executeKeyboardCopyTrigger({
+      document,
+      clipboard: clipboardMock,
+      toastFn: toastMock,
+      adapter: failingAdapter,
+    });
+
+    expect(handled).toBe(false);
+    expect(clipboardMock.writeText).not.toHaveBeenCalled();
+    expectErrorToast(toastMock);
+  });
+
+  it('renders an error toast when the Clipboard API is unavailable', async () => {
+    document.body.appendChild(createThreadPost());
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+
+    try {
+      const handled = await executeKeyboardCopyTrigger({ document, toastFn: toastMock });
+
+      expect(handled).toBe(false);
+      expectErrorToast(toastMock);
+    } finally {
+      if (originalClipboard) {
+        Object.defineProperty(navigator, 'clipboard', originalClipboard);
+      } else {
+        Reflect.deleteProperty(navigator, 'clipboard');
+      }
+    }
+  });
 });
+
+function expectErrorToast(toastMock: ReturnType<typeof vi.fn>): void {
+  expect(toastMock).toHaveBeenCalledWith(expect.stringContaining('Failed to copy'), {
+    type: 'error',
+  });
+}
+
+function createThreadPost(): HTMLElement {
+  const post = document.createElement('shreddit-post');
+  post.setAttribute('id', 't3_failure_case');
+  post.setAttribute('post-title', 'Failure case thread');
+  post.setAttribute('author', 'failureUser');
+  post.setAttribute('score', '1');
+  return post;
+}

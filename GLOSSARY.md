@@ -41,7 +41,7 @@ The platform-styled in-page button mounted into the host platform's interface th
 _Avoid_: Copy button, floating button, extension trigger
 
 **Micro-Feedback**:
-The temporary visual state transition rendered directly within the Thread Action indicating successful clipboard copy.
+The temporary visual state transition rendered directly within the Thread Action indicating the outcome of a clipboard copy attempt (success or failure).
 _Avoid_: Toast alert, popup badge, snackbar
 
 **Depth Limit**:

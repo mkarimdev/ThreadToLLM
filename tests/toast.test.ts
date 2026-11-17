@@ -41,4 +41,12 @@ describe('Toast Notification Seam (showToast)', () => {
     expect(toast.getAttribute('role')).toBe('alert');
     expect(toast.style.backgroundColor).toBe('#b45309');
   });
+
+  it('sets role="alert" and error styling when type is error', () => {
+    const toast = showToast('Failed to copy thread to clipboard', { type: 'error' });
+
+    expect(toast.getAttribute('role')).toBe('alert');
+    expect(toast.getAttribute('aria-live')).toBe('assertive');
+    expect(toast.style.backgroundColor).toBe('#b91c1c');
+  });
 });

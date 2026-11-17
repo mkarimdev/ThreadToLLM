@@ -62,6 +62,8 @@ export async function executeKeyboardCopyTrigger(
     return false;
   }
 
+  const toastFn = options?.toastFn ?? showToast;
+
   try {
     const adapter = options?.adapter ?? new RedditAdapter();
     const filterPipeline = options?.filterPipeline ?? new FilterPipeline();
@@ -78,17 +80,17 @@ export async function executeKeyboardCopyTrigger(
       (typeof navigator !== 'undefined' ? navigator.clipboard : undefined);
 
     if (!clipboard || typeof clipboard.writeText !== 'function') {
-      return false;
+      throw new Error('Clipboard API is not available');
     }
 
     await clipboard.writeText(serializedMarkdown);
 
     const count = countComments(filteredDocument.comments);
-    const toastFn = options?.toastFn ?? showToast;
     toastFn(`Copied ${count} comments to clipboard!`, { type: 'success' });
 
     return true;
   } catch {
+    toastFn('Failed to copy thread', { type: 'error' });
     return false;
   }
 }

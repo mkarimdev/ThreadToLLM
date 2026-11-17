@@ -6,8 +6,23 @@
 export interface ToastOptions {
   durationMs?: number;
   parent?: HTMLElement;
-  type?: 'info' | 'success' | 'warning';
+  type?: 'info' | 'success' | 'warning' | 'error';
 }
+
+type ToastType = NonNullable<ToastOptions['type']>;
+
+interface ToastPresentation {
+  role: 'status' | 'alert';
+  ariaLive: 'polite' | 'assertive';
+  backgroundColor: string;
+}
+
+const TOAST_PRESENTATION: Record<ToastType, ToastPresentation> = {
+  info: { role: 'status', ariaLive: 'polite', backgroundColor: '#1e293b' },
+  success: { role: 'status', ariaLive: 'polite', backgroundColor: '#1e293b' },
+  warning: { role: 'alert', ariaLive: 'assertive', backgroundColor: '#b45309' },
+  error: { role: 'alert', ariaLive: 'assertive', backgroundColor: '#b91c1c' },
+};
 
 const DEFAULT_DURATION_MS = 3000;
 const TOAST_CLASS = 'thread-to-llm-toast';
@@ -16,11 +31,12 @@ export function showToast(message: string, options?: ToastOptions): HTMLElement 
   const durationMs = options?.durationMs ?? DEFAULT_DURATION_MS;
   const parent = options?.parent ?? document.body;
   const type = options?.type ?? 'info';
+  const presentation = TOAST_PRESENTATION[type];
 
   const toast = document.createElement('div');
   toast.className = TOAST_CLASS;
-  toast.setAttribute('role', type === 'warning' ? 'alert' : 'status');
-  toast.setAttribute('aria-live', 'polite');
+  toast.setAttribute('role', presentation.role);
+  toast.setAttribute('aria-live', presentation.ariaLive);
 
   // Modern styling for subtle overlay
   Object.assign(toast.style, {
@@ -30,7 +46,7 @@ export function showToast(message: string, options?: ToastOptions): HTMLElement 
     zIndex: '999999',
     padding: '10px 16px',
     borderRadius: '8px',
-    backgroundColor: type === 'warning' ? '#b45309' : '#1e293b',
+    backgroundColor: presentation.backgroundColor,
     color: '#ffffff',
     fontSize: '13px',
     fontWeight: '500',

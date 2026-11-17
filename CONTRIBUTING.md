@@ -349,6 +349,6 @@ To maintain conceptual integrity across code, documentation, and issues, always 
 | **Markdown Serializer** | Formats the filtered `ThreadDocument` into token-dense Markdown. | *Formatter, exporter, printer* |
 | **Thread Action** | The in-page button mounted into the host interface to copy Markdown. | *Copy button, floating button, extension trigger* |
 | **Platform UI** | The module responsible for mounting the Thread Action. | *View binder, button injector, UI hook* |
-| **Micro-Feedback** | Temporary visual state rendered on the Thread Action upon copy success. | *Toast alert, popup badge, snackbar* |
+| **Micro-Feedback** | Temporary visual state rendered on the Thread Action reflecting the outcome of a copy attempt (success or failure). | *Toast alert, popup badge, snackbar* |
 | **Deleted Placeholder** | A redacted comment preserved in the tree solely to maintain reply hierarchy. | *Tombstone, ghost comment, empty node* |
 | **Leaf Comment** | A comment node in the Comment Tree that has no replies. | *Terminal comment, end node, childless comment* |
