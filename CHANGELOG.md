@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-17
+
+### Fixed
+- **ux**: defer unsupported-layout warning to user trigger (#25) (af6bbdf)
+- **ui**: show error feedback when extraction or clipboard fails (#24) (245a540)
+- **adapter**: scope thread extraction to active modal overlay (#23) (794925d)
+- **core**: preserve human replies under pruned bot comments (#22) (d73da4e)
+
+### Maintenance
+- **deps**: update test and lint toolchain to resolve audit advisories (#26) (d51ebea)
+
 ## [0.1.2] - 2026-11-17
 
 ### Added
