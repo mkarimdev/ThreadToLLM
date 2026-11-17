@@ -6,6 +6,7 @@
 import { PlatformAdapter } from '../adapter.interface';
 import { PlatformUI } from '../ui.interface';
 import { RedditAdapter, findThreadRoot } from './reddit.adapter';
+import { FEED_CONTAINER_SELECTOR, THREAD_MODAL_SELECTOR } from './reddit.selectors';
 import { countComments, FilterPipeline, MarkdownSerializer } from '../../core';
 
 export interface ClipboardService {
@@ -23,10 +24,6 @@ const FEEDBACK_DURATION_MS = 2500;
 const BUTTON_CLASS = 'thread-to-llm-action';
 const LABEL_CLASS = 'thread-to-llm-label';
 const INJECTED_DATA_KEY = 'threadToLlmInjected';
-/** Containers that render feed summary cards instead of a hydrated discussion thread. */
-export const FEED_CONTAINER_SELECTOR = 'shreddit-feed, [role="feed"]';
-/** Focused thread overlays rendered above a feed surface. */
-export const THREAD_MODAL_SELECTOR = 'faceplate-modal, shreddit-post-dialog, dialog[open], [role="dialog"]';
 
 const BG_DEFAULT =
   'var(--color-secondary-background, var(--color-neutral-background-weak, rgba(0, 0, 0, 0.05)))';

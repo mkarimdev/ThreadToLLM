@@ -5,6 +5,7 @@
 
 import { ThreadDocument, ThreadMetadata, OriginalPost, CommentNode, countComments } from '../../core';
 import { PlatformAdapter } from '../adapter.interface';
+import { THREAD_MODAL_SELECTOR } from './reddit.selectors';
 import { domToMarkdown } from './rich-text';
 
 export const COMMENT_COUNT_TOLERANCE_MARGIN = 2;
@@ -32,8 +33,13 @@ export class RedditAdapter implements PlatformAdapter {
       throw new Error('Failed to locate <shreddit-post> in DOM root');
     }
 
+    // When a discussion is open in an overlay above a feed, the modal anchors the focal thread.
+    // Scope the extraction to that modal so the background feed card is never mistaken for the
+    // Original Post and its summary comments never leak into the Comment Tree.
+    const commentRoot = postEl.closest(THREAD_MODAL_SELECTOR) ?? domRoot;
+
     const originalPost = this.extractOriginalPost(postEl);
-    const comments = this.extractCommentTree(domRoot, originalPost.author);
+    const comments = this.extractCommentTree(commentRoot, originalPost.author);
     const extractedCount = countComments(comments);
 
     const metadata: ThreadMetadata = {
@@ -268,7 +274,10 @@ export class RedditAdapter implements PlatformAdapter {
     if ('tagName' in domRoot && domRoot.tagName.toLowerCase() === 'shreddit-post') {
       return domRoot;
     }
-    return domRoot.querySelector('shreddit-post');
+
+    const posts = Array.from(domRoot.querySelectorAll('shreddit-post'));
+    // An active modal overlay takes precedence over feed cards that appear earlier in the DOM.
+    return posts.find((post) => post.closest(THREAD_MODAL_SELECTOR)) ?? posts[0] ?? null;
   }
 
   private resolveRedditUrl(pathOrUrl: string): string {

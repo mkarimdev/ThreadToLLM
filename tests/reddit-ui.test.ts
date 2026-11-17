@@ -308,6 +308,56 @@ describe('RedditUI', () => {
       expect(writtenText).toContain('Consensus latency vs consistency guarantees.');
     });
 
+    it('copies the active modal thread instead of a preceding feed card when its action is clicked', async () => {
+      const app = document.createElement('shreddit-app');
+      app.setAttribute('pagetype', 'home');
+
+      const feed = document.createElement('shreddit-feed');
+      const feedPost = document.createElement('shreddit-post');
+      feedPost.setAttribute('id', 't3_background_feed');
+      feedPost.setAttribute('post-title', 'Background Feed Card');
+      feedPost.setAttribute('author', 'feedUser');
+      feed.appendChild(feedPost);
+      app.appendChild(feed);
+
+      const modal = document.createElement('faceplate-modal');
+      const modalPost = document.createElement('shreddit-post');
+      modalPost.setAttribute('id', 't3_active_modal');
+      modalPost.setAttribute('post-title', 'Active Modal Discussion');
+      modalPost.setAttribute('author', 'modalUser');
+      modalPost.setAttribute('score', '42');
+      modalPost.setAttribute('permalink', '/r/typescript/comments/active_modal/discussion');
+      modal.appendChild(modalPost);
+
+      const comment = document.createElement('shreddit-comment');
+      comment.setAttribute('thingid', 't1_modal_comment');
+      comment.setAttribute('author', 'modalCommenter');
+      comment.setAttribute('depth', '0');
+      const commentBody = document.createElement('div');
+      commentBody.setAttribute('slot', 'comment');
+      commentBody.innerHTML = '<p>Modal-only comment.</p>';
+      comment.appendChild(commentBody);
+      modal.appendChild(comment);
+
+      app.appendChild(modal);
+      document.body.appendChild(app);
+
+      // The button is mounted on the modal post; no explicit domRoot, as in the live extension.
+      const button = redditUi.mountAction(modalPost);
+      expect(button).not.toBeNull();
+
+      button?.click();
+
+      expect(mockClipboard.writeText).toHaveBeenCalledTimes(1);
+      const writtenText = mockClipboard.writeText.mock.calls[0][0];
+      expect(writtenText).toContain('title: "Active Modal Discussion"');
+      expect(writtenText).toContain('author: modalUser');
+      expect(writtenText).toContain('Modal-only comment.');
+      expect(writtenText).not.toContain('Background Feed Card');
+
+      app.remove();
+    });
+
     it('uses navigator.clipboard.writeText by default if no custom clipboard is provided', async () => {
       const defaultUi = new RedditUI();
       const navWriteSpy = vi.fn().mockResolvedValue(undefined);

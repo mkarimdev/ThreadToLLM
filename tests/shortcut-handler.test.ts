@@ -181,4 +181,51 @@ describe('Shortcut & Message Handler Seam (executeKeyboardCopyTrigger)', () => {
     expect(copiedText).toContain('Modal Post Title');
     expect(copiedText).not.toContain('Feed Post');
   });
+
+  it('copies the active modal thread when a feed post precedes the modal inside shreddit-app', async () => {
+    const app = document.createElement('shreddit-app');
+    app.setAttribute('pagetype', 'home');
+
+    const feed = document.createElement('shreddit-feed');
+    const feedPost = document.createElement('shreddit-post');
+    feedPost.setAttribute('id', 't3_background_feed');
+    feedPost.setAttribute('post-title', 'Background Feed Card');
+    feedPost.setAttribute('author', 'feedUser');
+    feed.appendChild(feedPost);
+    app.appendChild(feed);
+
+    const modal = document.createElement('faceplate-modal');
+    const modalPost = document.createElement('shreddit-post');
+    modalPost.setAttribute('id', 't3_active_modal');
+    modalPost.setAttribute('post-title', 'Active Modal Discussion');
+    modalPost.setAttribute('author', 'modalUser');
+    modalPost.setAttribute('score', '42');
+    modalPost.setAttribute('permalink', '/r/typescript/comments/active_modal/discussion');
+    modal.appendChild(modalPost);
+
+    const comment = document.createElement('shreddit-comment');
+    comment.setAttribute('thingid', 't1_modal_comment');
+    comment.setAttribute('author', 'modalCommenter');
+    comment.setAttribute('depth', '0');
+    const commentBody = document.createElement('div');
+    commentBody.setAttribute('slot', 'comment');
+    commentBody.innerHTML = '<p>Modal-only comment.</p>';
+    comment.appendChild(commentBody);
+    modal.appendChild(comment);
+
+    app.appendChild(modal);
+    document.body.appendChild(app);
+
+    const handled = await executeKeyboardCopyTrigger({
+      document,
+      clipboard: clipboardMock,
+      toastFn: toastMock,
+    });
+
+    expect(handled).toBe(true);
+    const copiedText = clipboardMock.writeText.mock.calls[0][0];
+    expect(copiedText).toContain('Active Modal Discussion');
+    expect(copiedText).toContain('Modal-only comment.');
+    expect(copiedText).not.toContain('Background Feed Card');
+  });
 });

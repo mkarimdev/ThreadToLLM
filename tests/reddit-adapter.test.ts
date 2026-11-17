@@ -32,6 +32,7 @@ describe('RedditAdapter', () => {
   let commentMediaTreeIsolationFixture: HTMLDivElement;
   let commentMultipleMediaFixture: HTMLDivElement;
   let commentActionRowIconsFixture: HTMLDivElement;
+  let modalOverlayFixture: HTMLDivElement;
 
   beforeAll(() => {
     adapter = new RedditAdapter();
@@ -438,6 +439,45 @@ describe('RedditAdapter', () => {
         </shreddit-comment-action-row>
       </shreddit-comment>
     `;
+
+    modalOverlayFixture = document.createElement('div');
+    modalOverlayFixture.innerHTML = `
+      <shreddit-app pagetype="home">
+        <shreddit-feed>
+          <shreddit-post
+            id="t3_background_feed"
+            post-title="Background Feed Card"
+            author="feed_user"
+            score="999"
+            permalink="/r/feed/comments/background_card"
+          >
+            <div slot="text-body"><p>This feed card must never be extracted.</p></div>
+          </shreddit-post>
+          <shreddit-comment thingid="t1_feed_decoy" author="feed_decoy" score="7" depth="0">
+            <div slot="comment"><p>A background feed comment that must not leak into the modal thread.</p></div>
+          </shreddit-comment>
+        </shreddit-feed>
+        <faceplate-modal>
+          <shreddit-post
+            id="t3_active_modal"
+            post-title="Active Modal Discussion"
+            author="modal_user"
+            score="42"
+            permalink="/r/typescript/comments/active_modal/discussion"
+          >
+            <div slot="text-body"><p>Modal post body.</p></div>
+          </shreddit-post>
+          <div id="comment-tree">
+            <shreddit-comment thingid="t1_modal_c1" author="modal_commenter" score="10" depth="0">
+              <div slot="comment"><p>Comment belonging to the active modal discussion.</p></div>
+              <shreddit-comment thingid="t1_modal_c1_1" author="modal_replyer" score="4" depth="1">
+                <div slot="comment"><p>Nested reply inside the active modal discussion.</p></div>
+              </shreddit-comment>
+            </shreddit-comment>
+          </div>
+        </faceplate-modal>
+      </shreddit-app>
+    `;
   });
 
   describe('Post metadata extraction', () => {
@@ -691,6 +731,28 @@ describe('RedditAdapter', () => {
       expect(doc.comments[0].content).toBe('Comment body text.');
       expect(doc.comments[0].content).not.toContain('upvote.svg');
       expect(doc.comments[0].content).not.toContain('share.svg');
+    });
+  });
+
+  describe('Active modal overlay scoping over a feed', () => {
+    it('extracts the active modal post and its comment tree instead of the background feed card', () => {
+      const doc = adapter.extract(modalOverlayFixture);
+
+      // Post metadata must come from the modal post, not the first feed card in shreddit-app.
+      expect(doc.originalPost.id).toBe('t3_active_modal');
+      expect(doc.metadata.title).toBe('Active Modal Discussion');
+      expect(doc.metadata.author).toBe('modal_user');
+      expect(doc.metadata.url).toBe('https://reddit.com/r/typescript/comments/active_modal/discussion');
+      expect(doc.originalPost.score).toBe(42);
+      expect(doc.originalPost.content).toBe('Modal post body.');
+
+      // Only the active modal discussion tree is extracted; feed content must not leak in.
+      expect(doc.metadata.extractedCount).toBe(2);
+      expect(doc.comments).toHaveLength(1);
+      expect(doc.comments[0].id).toBe('t1_modal_c1');
+      expect(doc.comments[0].author).toBe('modal_commenter');
+      expect(doc.comments[0].replies).toHaveLength(1);
+      expect(doc.comments[0].replies[0].id).toBe('t1_modal_c1_1');
     });
   });
 });
