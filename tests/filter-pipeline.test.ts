@@ -81,6 +81,121 @@ describe('FilterPipeline', () => {
       expect(result.comments[0].replies[0].id).toBe('c_user_2');
     });
 
+    it('preserves human replies nested under an AutoModerator comment via a placeholder parent', () => {
+      const pipeline = new FilterPipeline();
+      const doc: ThreadDocument = {
+        ...baseDoc,
+        comments: [
+          {
+            id: 'c_automod',
+            author: 'AutoModerator',
+            content: 'Please read the subreddit rules before posting.',
+            score: 1,
+            replies: [
+              {
+                id: 'c_human_reply',
+                author: 'curious_reader',
+                content: 'Thanks, where can I find those rules?',
+                score: 7,
+                replies: [],
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = pipeline.filter(doc);
+
+      expect(result.comments).toHaveLength(1);
+      const placeholder = result.comments[0];
+      expect(placeholder.isDeleted).toBe(true);
+      expect(placeholder.author).toBe('[deleted]');
+      expect(placeholder.content).toBe('[deleted]');
+      expect(placeholder.replies).toHaveLength(1);
+      expect(placeholder.replies[0].id).toBe('c_human_reply');
+      expect(placeholder.replies[0].author).toBe('curious_reader');
+      expect(placeholder.replies[0].content).toContain('where can I find those rules');
+    });
+
+    it('fully prunes a bot branch whose replies are all bots or deleted content', () => {
+      const pipeline = new FilterPipeline();
+      const doc: ThreadDocument = {
+        ...baseDoc,
+        comments: [
+          {
+            id: 'c_automod_root',
+            author: 'AutoModerator',
+            content: 'Please read the rules.',
+            score: 1,
+            replies: [
+              {
+                id: 'c_bot_child',
+                author: 'RemindMe_Bot',
+                content: 'I will remind you in 2 days.',
+                score: 1,
+                replies: [],
+              },
+              {
+                id: 'c_deleted_child',
+                author: 'former_user',
+                content: '[deleted]',
+                score: 0,
+                isDeleted: true,
+                replies: [],
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = pipeline.filter(doc);
+      expect(result.comments).toHaveLength(0);
+    });
+
+    it('preserves deeply nested human replies through chains of bot placeholders at the proper depth', () => {
+      const pipeline = new FilterPipeline();
+      const serializer = new MarkdownSerializer();
+      const doc: ThreadDocument = {
+        ...baseDoc,
+        comments: [
+          {
+            id: 'c_automod',
+            author: 'AutoModerator',
+            content: 'Rule reminder.',
+            score: 1,
+            replies: [
+              {
+                id: 'c_bot_child',
+                author: 'spam_filter_Bot',
+                content: 'Automated filter notice.',
+                score: 1,
+                replies: [
+                  {
+                    id: 'c_human',
+                    author: 'helpful_human',
+                    content: 'Here is the actual answer to the question.',
+                    score: 9,
+                    replies: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = pipeline.filter(doc);
+
+      const human = findCommentById(result.comments, 'c_human');
+      expect(human?.id).toBe('c_human');
+      expect(human?.content).toContain('actual answer');
+      expect(human?.depth).toBe(2);
+
+      const markdown = serializer.serialize(result);
+      expect(markdown).toContain('- **[+1] [deleted]**: [deleted]');
+      expect(markdown).toContain('    - **[+9] helpful_human**: Here is the actual answer to the question.');
+    });
+
     it('prunes automated bots matching naming patterns out of the box', () => {
       const pipeline = new FilterPipeline();
       const doc: ThreadDocument = {

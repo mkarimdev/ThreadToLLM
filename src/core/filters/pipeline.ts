@@ -66,9 +66,7 @@ export class FilterPipeline {
       return null;
     }
 
-    if (isBotComment(comment, this.customBots)) {
-      return null;
-    }
+    const isNoise = isBotComment(comment, this.customBots) || isDeletedComment(comment);
 
     const filteredReplies: CommentNode[] = [];
     if (comment.replies && comment.replies.length > 0) {
@@ -80,25 +78,29 @@ export class FilterPipeline {
       }
     }
 
-    if (isDeletedComment(comment)) {
-      if (filteredReplies.length === 0) {
-        return null;
-      }
-      return {
-        ...comment,
-        depth: comment.depth ?? depth,
-        author: '[deleted]',
-        content: '[deleted]',
-        isDeleted: true,
-        replies: filteredReplies,
-      };
-    }
-
-    return {
+    const filteredNode: CommentNode = {
       ...comment,
       depth: comment.depth ?? depth,
       replies: filteredReplies,
     };
+
+    // Noise nodes (bots and deleted content) are pruned entirely only when they
+    // have no surviving replies. When a human reply survives beneath one, retain
+    // a redacted placeholder so the discussion hierarchy and its sources are kept
+    // (ADR-0010), without emitting the noise node's own content.
+    if (isNoise) {
+      if (filteredReplies.length === 0) {
+        return null;
+      }
+      return {
+        ...filteredNode,
+        author: '[deleted]',
+        content: '[deleted]',
+        isDeleted: true,
+      };
+    }
+
+    return filteredNode;
   }
 
   public filter(doc: ThreadDocument): ThreadDocument {
