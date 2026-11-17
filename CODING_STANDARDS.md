@@ -23,6 +23,7 @@ Judgement calls and architectural rules enforced during code review.
 ## Testing Practices
 
 - **Fixture Scope**: Parse test fixtures at module or `beforeAll` scope rather than repeatedly inside individual assertions.
+- **Realistic DOM Fidelity**: DOM-to-Markdown changes must be verified against the representative host fixture in `tests/fixtures/`, including nested content containers, not only minimal hand-authored fixtures.
 - **DOM-Bound Adapter Testing**: Adapter and UI layer tests requiring DOM APIs must declare `// @vitest-environment happy-dom` at the file header, keeping `vitest.config.ts` default environment as `node` for pure core isolation.
 - **Seam-Driven Verification**: Test public interfaces and pipeline seams, avoiding assertions coupled to internal implementation helpers.
 - **Side-Effect Free Test Runs**: Unit tests running in Node.js must not emit unexpected stdout logs or access unmocked browser globals.

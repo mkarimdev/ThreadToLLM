@@ -244,4 +244,22 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(button?.style.marginLeft).toContain('var(--spacing-xs');
     expect(button?.style.color).toContain('var(--color-neutral-content');
   });
+
+  it('end-to-end: preserves paragraph breaks and rich text inside nested host content wrappers', async () => {
+    const markdown = await extractAndSerialize(createRealRedditThreadFixture());
+
+    // Paragraph breaks must survive the nested <div> wrapper in the post body.
+    expect(markdown).toContain(
+      'I was running the security audit skill when Gemini Flash hit a safety block.\n\nHere are the steps I tried:'
+    );
+    // Ordered list with inline code inside its items.
+    expect(markdown).toContain('1. Install the audit skill\n2. Run `audit --deep`');
+    // Links and fenced code blocks.
+    expect(markdown).toContain('Details at [the docs](https://example.com/audit).');
+    expect(markdown).toContain('```\nnpm run audit\nnpm run report\n```');
+    // Paragraph breaks must also survive the nested wrapper in a comment body.
+    expect(markdown).toContain(
+      'If the source code is local, it will audit it.\n\n  That is the important part of the report.'
+    );
+  });
 });

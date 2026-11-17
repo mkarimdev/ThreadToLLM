@@ -22,6 +22,10 @@ Detailed user stories, architecture requirements, and implementation specs live 
 
 Coding standards and review rules live in `CODING_STANDARDS.md`.
 
+### Live host verification
+
+Reddit blocks server-side fetches (HTTP 403 / bot-check). Verify DOM extraction against the representative fixtures in `tests/fixtures/`, not live threads; new rich-text fixtures must include the host's nested content wrappers.
+
 ### Git workflow
 
 - Linear trunk on `master`.
