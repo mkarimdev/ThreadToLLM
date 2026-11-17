@@ -5,6 +5,7 @@
 
 import { ThreadDocument, ThreadMetadata, OriginalPost, CommentNode, countComments } from '../../core';
 import { PlatformAdapter } from '../adapter.interface';
+import { domToMarkdown } from './rich-text';
 
 export const COMMENT_COUNT_TOLERANCE_MARGIN = 2;
 
@@ -87,17 +88,12 @@ export class RedditAdapter implements PlatformAdapter {
     return rootComments;
   }
 
-  private extractTextContent(container: Element | null, selfCommentEl?: Element): string {
+  private extractContentAsMarkdown(container: Element | null, skipNestedComments = false): string {
     if (!container) {
       return '';
     }
 
-    const paragraphs = Array.from(container.querySelectorAll('p'))
-      .filter((p) => !selfCommentEl || p.closest('shreddit-comment') === selfCommentEl)
-      .map((p) => p.textContent?.trim() || '')
-      .filter((t) => t.length > 0);
-
-    return paragraphs.length > 0 ? paragraphs.join('\n\n') : container.textContent?.trim() || '';
+    return domToMarkdown(container, skipNestedComments).trim();
   }
 
   private extractCommentNode(el: Element, opAuthor: string): CommentNode {
@@ -131,7 +127,7 @@ export class RedditAdapter implements PlatformAdapter {
       el.querySelector('[id*="-comment-rtjson-content"]') ||
       el.querySelector('.md');
 
-    let content = this.extractTextContent(commentSlot, el);
+    let content = this.extractContentAsMarkdown(commentSlot, true);
     const mediaUrl = this.extractCommentMedia(el);
     if (mediaUrl) {
       if (!content) {
@@ -309,7 +305,7 @@ export class RedditAdapter implements PlatformAdapter {
       postEl.querySelector('[id*="-post-rtjson-content"]') ||
       postEl.querySelector('.text-neutral-content');
 
-    let content = this.extractTextContent(textBodyEl);
+    let content = this.extractContentAsMarkdown(textBodyEl);
     const externalUrl = this.extractExternalOrMediaUrl(postEl);
 
     if (externalUrl) {
