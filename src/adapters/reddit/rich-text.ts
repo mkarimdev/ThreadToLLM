@@ -125,7 +125,10 @@ function renderBlock(element: Element, skipNestedComments: boolean): string {
   if (tag === 'BLOCKQUOTE') {
     return renderBlockquote(element, skipNestedComments);
   }
-  return renderChildren(element, skipNestedComments).join('\n');
+  if (tag === 'P') {
+    return renderChildren(element, skipNestedComments).join('\n');
+  }
+  return renderChildren(element, skipNestedComments).join('\n\n');
 }
 
 function renderChildren(node: Node, skipNestedComments: boolean): string[] {

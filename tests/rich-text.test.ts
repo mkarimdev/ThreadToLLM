@@ -55,6 +55,12 @@ const richListFixture = parse(`
   </ul>
 `);
 const lineBreakFixture = parse('<p>First line<br />second line</p>');
+const nestedDivFixture = parse(`
+  <div>
+    <p>First paragraph.</p>
+    <p>Second paragraph.</p>
+  </div>
+`);
 
 describe('domToMarkdown', () => {
   it('converts a bulleted list to indented "- " markdown items', () => {
@@ -103,5 +109,9 @@ describe('domToMarkdown', () => {
 
   it('converts <br> to a line break', () => {
     expect(domToMarkdown(lineBreakFixture)).toBe('First line\nsecond line');
+  });
+
+  it('keeps blank lines between paragraphs nested inside a container div', () => {
+    expect(domToMarkdown(nestedDivFixture)).toBe('First paragraph.\n\nSecond paragraph.');
   });
 });
