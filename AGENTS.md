@@ -16,7 +16,15 @@ Single-context layout (`GLOSSARY.md` and `docs/adr/` at repo root). See `docs/ag
 
 ### Specifications
 
-Detailed user stories, architecture requirements, and implementation specs live in `.scratch/spec.md`.
+The GitHub issue is the authoritative spec. Durable research notes live in `docs/research/`.
+
+### Decision history
+
+Deliberately disabled or reversed features and why: `docs/agents/decision-history.md`.
+
+### Agent workflow
+
+Diagnostic harnesses, reviewing uncommitted work, and git-history inspection: `docs/agents/agent-workflow.md`.
 
 ### Coding standards
 

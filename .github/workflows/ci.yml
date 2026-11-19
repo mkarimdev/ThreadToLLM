@@ -32,5 +32,8 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Check disabled-behaviour test markers
+        run: npm run check:disabled-tests
+
       - name: Build extension
         run: npm run build

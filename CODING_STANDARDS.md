@@ -14,6 +14,10 @@ Judgement calls and architectural rules enforced during code review.
 - **Token-Dense Frontmatter**: Serialized YAML frontmatter emitted for LLM consumption must emit optional metadata flags conditionally (omitting negative or default states) and avoid internal UI counters to maximize prompt token density.
 - **DOM-Availability Extraction**: Platform adapters must extract currently hydrated DOM elements without speculating or asserting on unhydrated host SPA state. Browser extensions should prioritize synchronous fidelity over host background hydration guesswork. An exception is the DOM-evidenced partial-load flag: adapters must set `isPartiallyLoaded: true` when a rendered, unclicked unexpanded-reply trigger is observed inside the extraction root, but must never infer it from an inflated host comment count (ADR-0011).
 
+## Documentation consistency (review)
+
+- **Rule Reconciliation**: When a change alters a rule in `CODING_STANDARDS.md`, `CONTRIBUTING.md`, or an ADR, the reviewer must check the other documents for contradictions and require them reconciled in the same change. Documented reversals belong in `docs/agents/decision-history.md`.
+
 ## Extension Architecture
 
 - **Single Dispatch Channel for Commands**: When a browser action or shortcut is registered via `chrome.commands` and routed through the service worker, content scripts must not attach redundant in-page DOM keyboard listeners (`keydown`/`keyup`). Global extension commands must have a single authoritative dispatch channel to prevent double-firing and race conditions.
@@ -28,3 +32,4 @@ Judgement calls and architectural rules enforced during code review.
 - **DOM-Bound Adapter Testing**: Adapter and UI layer tests requiring DOM APIs must declare `// @vitest-environment happy-dom` at the file header, keeping `vitest.config.ts` default environment as `node` for pure core isolation.
 - **Seam-Driven Verification**: Test public interfaces and pipeline seams, avoiding assertions coupled to internal implementation helpers.
 - **Side-Effect Free Test Runs**: Unit tests running in Node.js must not emit unexpected stdout logs or access unmocked browser globals.
+- **Disabled-Behaviour Markers**: A test that deliberately encodes temporarily disabled behaviour must carry `[DISABLED]` in its title. `npm run check:disabled-tests` fails while any such marker remains, so re-enabling the capability forces their removal.
