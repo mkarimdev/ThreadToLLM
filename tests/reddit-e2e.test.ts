@@ -2,14 +2,18 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { extractAndSerialize, RedditUI } from '../src/adapters';
 import { createRealRedditThreadFixture } from './fixtures/real-reddit-thread.fixture';
+import { createPartialRedditThreadFixture } from './fixtures/partial-reddit-thread.fixture';
 
 describe('extractAndSerialize (End-to-End Testing Seam)', () => {
   let textThreadRoot: HTMLDivElement;
   let linkPostRoot: HTMLDivElement;
   let sidebarWidgetsRoot: HTMLDivElement;
   let pendingPaginationRoot: HTMLDivElement;
+  let partialThreadRoot: HTMLDivElement;
 
   beforeAll(() => {
+    partialThreadRoot = createPartialRedditThreadFixture();
+
     textThreadRoot = document.createElement('div');
     textThreadRoot.innerHTML = `
       <shreddit-post
@@ -85,12 +89,14 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
         permalink="/r/typescript/comments/link99/announcing_typescript_5_8"
       >
       </shreddit-post>
-      <shreddit-comment thingid="c1" author="enthusiast" score="40" depth="0">
-        <div slot="comment"><p>The performance improvements in 5.8 look substantial!</p></div>
-      </shreddit-comment>
-      <shreddit-comment-tree-action>
-        <button>Load more comments</button>
-      </shreddit-comment-tree-action>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="enthusiast" score="40" depth="0">
+          <div slot="comment"><p>The performance improvements in 5.8 look substantial!</p></div>
+        </shreddit-comment>
+        <shreddit-comment-tree-action>
+          <button>Load more comments</button>
+        </shreddit-comment-tree-action>
+      </div>
     `;
 
     sidebarWidgetsRoot = document.createElement('div');
@@ -181,18 +187,18 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).not.toContain('https://styles.redditmedia.com/avatar_amr3k.png');
   });
 
-  it('end-to-end: handles non-text link submission and extracts available elements', async () => {
+  it('end-to-end: flags a link submission whose comments are not yet expanded', async () => {
     const markdown = await extractAndSerialize(linkPostRoot);
 
     expect(markdown).toContain('source: reddit');
     expect(markdown).toContain('title: "Official TypeScript 5.8 Release Notes"');
     expect(markdown).toContain('author: msft_announcer');
-    expect(markdown).not.toContain('isPartiallyLoaded');
+    expect(markdown).toContain('isPartiallyLoaded: true');
     expect(markdown).toContain('https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/');
     expect(markdown).toContain('- **[+40] enthusiast**: The performance improvements in 5.8 look substantial!');
   });
 
-  it('end-to-end: ignores global page widgets and tolerance margin, emitting clean fully loaded frontmatter', async () => {
+  it('end-to-end: ignores global page widgets and host-count discrepancies, emitting clean fully loaded frontmatter', async () => {
     const markdown = await extractAndSerialize(sidebarWidgetsRoot);
 
     expect(markdown).toContain('source: reddit');
@@ -202,14 +208,22 @@ describe('extractAndSerialize (End-to-End Testing Seam)', () => {
     expect(markdown).toContain('- **[+10] user_a**: Loaded single comment.');
   });
 
-  it('end-to-end: extracts all available comments without partial loading flag', async () => {
+  it('end-to-end: flags a thread with a pending "more comments" trigger', async () => {
     const markdown = await extractAndSerialize(pendingPaginationRoot);
 
     expect(markdown).toContain('source: reddit');
     expect(markdown).toContain('title: "E2E Thread with Pending Pagination"');
     expect(markdown).toContain('author: e2e_tester');
-    expect(markdown).not.toContain('isPartiallyLoaded');
+    expect(markdown).toContain('isPartiallyLoaded: true');
     expect(markdown).toContain('- **[+10] user_a**: First comment.');
+  });
+
+  it('end-to-end: flags a representative partially expanded thread fixture', async () => {
+    const markdown = await extractAndSerialize(partialThreadRoot);
+
+    expect(markdown).toContain('source: reddit');
+    expect(markdown).toContain('isPartiallyLoaded: true');
+    expect(markdown).toContain('- **[+12] loaded_user**: One loaded comment.');
   });
 
   it('end-to-end: extracts real-world Modern Reddit fixture with hovercard loaders, action bar spacing, and memes', async () => {

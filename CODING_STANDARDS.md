@@ -12,7 +12,7 @@ Judgement calls and architectural rules enforced during code review.
 - **Accurate Pipeline Feedback**: In-page micro-feedback and user-facing count metrics must reflect the post-pipeline filtered thread document rather than raw pre-filter DOM node totals.
 - **Pure Domain Traversals**: Recursive operations, aggregations, or queries over canonical Intermediate Representations (`ThreadDocument`, `CommentNode[]`) must be declared as pure functions in `src/core/` rather than re-implemented inside UI or platform adapters.
 - **Token-Dense Frontmatter**: Serialized YAML frontmatter emitted for LLM consumption must emit optional metadata flags conditionally (omitting negative or default states) and avoid internal UI counters to maximize prompt token density.
-- **DOM-Availability Extraction**: Platform adapters must extract currently hydrated DOM elements without speculating or asserting on unhydrated host SPA state (`isPartiallyLoaded`). Browser extensions should prioritize synchronous fidelity over host background hydration guesswork.
+- **DOM-Availability Extraction**: Platform adapters must extract currently hydrated DOM elements without speculating or asserting on unhydrated host SPA state. Browser extensions should prioritize synchronous fidelity over host background hydration guesswork. An exception is the DOM-evidenced partial-load flag: adapters must set `isPartiallyLoaded: true` when a rendered, unclicked unexpanded-reply trigger is observed inside the extraction root, but must never infer it from an inflated host comment count (ADR-0011).
 
 ## Extension Architecture
 

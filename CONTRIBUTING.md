@@ -311,7 +311,7 @@ Refer to [CODING_STANDARDS.md](CODING_STANDARDS.md) for architectural rules enfo
    - A comment whose author is `[deleted]` is **not** deleted if its body text remains intact.
    - A comment is only marked `isDeleted: true` if its body content is purged (`[deleted]`, `[removed]`) or explicit deletion attributes are set.
 3. **Preserve Deleted Placeholders**: Retain deleted comments that have active replies (`isDeleted: true`) so reply nesting remains valid. Prune childless deleted leaf comments.
-4. **DOM-Availability Extraction**: Platform adapters must extract currently hydrated DOM elements. Do not speculate or assert on unhydrated host SPA state (`isPartiallyLoaded: false`).
+4. **DOM-Availability Extraction**: Platform adapters must extract currently hydrated DOM elements. Do not speculate or assert on unhydrated host SPA state. The one exception is `isPartiallyLoaded: true`, which must be set only when an unclicked unexpanded-reply trigger is actually rendered inside the extraction root — never from a host comment-count discrepancy (ADR-0011).
 5. **Host Platform Styling Fidelity**: Match host interactive tokens (`--color-neutral-content`, `currentColor`) rather than metadata/subtext tokens. Inherit existing margin tokens rather than assuming container flex gap.
 6. **Single Dispatch Channel**: Extension global shortcuts (`chrome.commands`) must route through the background service worker. Do not bind redundant DOM `keydown` listeners in content scripts.
 

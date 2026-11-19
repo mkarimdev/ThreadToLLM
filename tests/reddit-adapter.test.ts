@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeAll } from 'vitest';
-import { RedditAdapter, COMMENT_COUNT_TOLERANCE_MARGIN } from '../src/adapters/reddit/reddit.adapter';
+import { RedditAdapter } from '../src/adapters/reddit/reddit.adapter';
+import { createPartialRedditThreadFixture } from './fixtures/partial-reddit-thread.fixture';
+import { createRealRedditThreadFixture } from './fixtures/real-reddit-thread.fixture';
 
 describe('RedditAdapter', () => {
   let adapter: RedditAdapter;
@@ -19,9 +21,9 @@ describe('RedditAdapter', () => {
   let partialCommentCountFixture: HTMLDivElement;
   let fullyHydratedFixture: HTMLDivElement;
   let sidebarAndDrawerWidgetsFixture: HTMLDivElement;
-  let toleranceMarginSmallDiscrepancyFixture: HTMLDivElement;
-  let exceedsToleranceMarginFixture: HTMLDivElement;
-  let toleranceWithinMarginWithPaginationTriggerFixture: HTMLDivElement;
+  let smallCountDiscrepancyFixture: HTMLDivElement;
+  let largeCountDiscrepancyFixture: HTMLDivElement;
+  let smallCountDiscrepancyWithTriggerFixture: HTMLDivElement;
   let commentTreeScopedAsyncLoaderFixture: HTMLDivElement;
   let commentChildLoaderFixture: HTMLDivElement;
   let unclickedPaginationButtonFixture: HTMLDivElement;
@@ -33,9 +35,26 @@ describe('RedditAdapter', () => {
   let commentMultipleMediaFixture: HTMLDivElement;
   let commentActionRowIconsFixture: HTMLDivElement;
   let modalOverlayFixture: HTMLDivElement;
+  let partialThreadFixture: HTMLDivElement;
+  let fullyExpandedFixture: HTMLDivElement;
+  let unscopedPaginationFixture: HTMLDivElement;
 
   beforeAll(() => {
     adapter = new RedditAdapter();
+    partialThreadFixture = createPartialRedditThreadFixture();
+    fullyExpandedFixture = createRealRedditThreadFixture();
+
+    unscopedPaginationFixture = document.createElement('div');
+    unscopedPaginationFixture.innerHTML = `
+      <shreddit-post id="t3_unscoped" post-title="Post" author="alice" permalink="/r/test/comments/unscoped">
+      </shreddit-post>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>Loaded comment</p></div>
+        </shreddit-comment>
+      </div>
+      <shreddit-more-comments count="5"></shreddit-more-comments>
+    `;
 
     standardPostFixture = document.createElement('div');
     standardPostFixture.innerHTML = `
@@ -209,22 +228,26 @@ describe('RedditAdapter', () => {
     partialTreeActionFixture.innerHTML = `
       <shreddit-post id="t3_part1" post-title="Post" author="alice" permalink="/r/test/comments/1">
       </shreddit-post>
-      <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
-        <div slot="comment"><p>Loaded comment</p></div>
-      </shreddit-comment>
-      <shreddit-comment-tree-action>
-        <button>View 15 more replies</button>
-      </shreddit-comment-tree-action>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>Loaded comment</p></div>
+        </shreddit-comment>
+        <shreddit-comment-tree-action>
+          <button>View 15 more replies</button>
+        </shreddit-comment-tree-action>
+      </div>
     `;
 
     partialFaceplateFixture = document.createElement('div');
     partialFaceplateFixture.innerHTML = `
       <shreddit-post id="t3_part2" post-title="Post" author="alice" permalink="/r/test/comments/2">
       </shreddit-post>
-      <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
-        <div slot="comment"><p>Loaded comment</p></div>
-      </shreddit-comment>
-      <faceplate-partial src="/svc/shreddit/comments/more"></faceplate-partial>
+      <div id="comment-tree">
+        <shreddit-comment thingid="c1" author="bob" score="5" depth="0">
+          <div slot="comment"><p>Loaded comment</p></div>
+        </shreddit-comment>
+        <faceplate-partial src="/svc/shreddit/comments/more"></faceplate-partial>
+      </div>
     `;
 
     partialCommentCountFixture = document.createElement('div');
@@ -267,8 +290,8 @@ describe('RedditAdapter', () => {
       </div>
     `;
 
-    toleranceMarginSmallDiscrepancyFixture = document.createElement('div');
-    toleranceMarginSmallDiscrepancyFixture.innerHTML = `
+    smallCountDiscrepancyFixture = document.createElement('div');
+    smallCountDiscrepancyFixture.innerHTML = `
       <shreddit-post id="t3_tol1" post-title="Post with 2 missing phantom comments" author="alice" permalink="/r/test/comments/tol1" comment-count="4">
       </shreddit-post>
       <div id="comment-tree">
@@ -281,8 +304,8 @@ describe('RedditAdapter', () => {
       </div>
     `;
 
-    exceedsToleranceMarginFixture = document.createElement('div');
-    exceedsToleranceMarginFixture.innerHTML = `
+    largeCountDiscrepancyFixture = document.createElement('div');
+    largeCountDiscrepancyFixture.innerHTML = `
       <shreddit-post id="t3_tol2" post-title="Post with 3 missing comments" author="alice" permalink="/r/test/comments/tol2" comment-count="5">
       </shreddit-post>
       <div id="comment-tree">
@@ -295,8 +318,8 @@ describe('RedditAdapter', () => {
       </div>
     `;
 
-    toleranceWithinMarginWithPaginationTriggerFixture = document.createElement('div');
-    toleranceWithinMarginWithPaginationTriggerFixture.innerHTML = `
+    smallCountDiscrepancyWithTriggerFixture = document.createElement('div');
+    smallCountDiscrepancyWithTriggerFixture.innerHTML = `
       <shreddit-post id="t3_tol3" post-title="Post with pagination trigger within count tolerance" author="alice" permalink="/r/test/comments/tol3" comment-count="3">
       </shreddit-post>
       <div id="comment-tree">
@@ -607,65 +630,102 @@ describe('RedditAdapter', () => {
     });
   });
 
-  describe('DOM-only extraction (partial load detection disabled)', () => {
-    it('sets isPartiallyLoaded: false and extracts available comments when pagination elements exist', () => {
+  describe('Partial load detection (DOM-evidenced only)', () => {
+    it('flags a thread with an unclicked comment-tree pagination trigger', () => {
       const doc = adapter.extract(partialTreeActionFixture);
 
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
       expect(doc.metadata.extractedCount).toBe(1);
     });
 
-    it('sets isPartiallyLoaded: false when <faceplate-partial> or <shreddit-async-loader> is present', () => {
+    it('flags a loader whose source points at the comments endpoint', () => {
       const doc = adapter.extract(partialFaceplateFixture);
 
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
       expect(doc.metadata.extractedCount).toBe(1);
     });
 
-    it('sets isPartiallyLoaded: false when <shreddit-post> comment-count exceeds extracted count', () => {
+    it('does not flag a count discrepancy with no unexpanded DOM signal', () => {
       const doc = adapter.extract(partialCommentCountFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: false when thread has no unhydrated elements', () => {
+    it('does not flag a fully hydrated thread', () => {
       const doc = adapter.extract(fullyHydratedFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: false when unhydrated loaders are in global sidebar or user drawer', () => {
+    it('does not flag a pagination trigger rendered outside the comment tree', () => {
+      const doc = adapter.extract(unscopedPaginationFixture);
+
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('does not flag unhydrated loaders in the global sidebar or user drawer', () => {
       const doc = adapter.extract(sidebarAndDrawerWidgetsFixture);
 
       expect(doc.metadata.extractedCount).toBe(2);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('sets isPartiallyLoaded: false and extracts available comments regardless of loaders inside comment tree', () => {
+    it('flags a loader placed directly inside the comment tree', () => {
       const doc = adapter.extract(commentTreeScopedAsyncLoaderFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
     });
 
-    it('sets isPartiallyLoaded: false when an unhydrated loader exists inside a <shreddit-comment>', () => {
+    it('flags a reply loader inside a <shreddit-comment>', () => {
       const doc = adapter.extract(commentChildLoaderFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
-      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
     });
 
-    it('sets isPartiallyLoaded: false when an unclicked pagination button exists in comment tree', () => {
+    it('flags an unclicked pagination button inside the comment tree', () => {
       const doc = adapter.extract(unclickedPaginationButtonFixture);
 
       expect(doc.metadata.extractedCount).toBe(1);
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+    });
+
+    it('flags an unexpanded subtree even when the host-count gap is small', () => {
+      const doc = adapter.extract(smallCountDiscrepancyWithTriggerFixture);
+
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.extractedCount).toBe(2);
+    });
+
+    it('does not flag a small host-count discrepancy without a DOM signal', () => {
+      const doc = adapter.extract(smallCountDiscrepancyFixture);
+
+      expect(doc.metadata.extractedCount).toBe(2);
       expect(doc.metadata.isPartiallyLoaded).toBe(false);
     });
 
-    it('defines COMMENT_COUNT_TOLERANCE_MARGIN as 2', () => {
-      expect(COMMENT_COUNT_TOLERANCE_MARGIN).toBe(2);
+    it('does not flag a large host-count discrepancy without a DOM signal', () => {
+      const doc = adapter.extract(largeCountDiscrepancyFixture);
+
+      expect(doc.metadata.extractedCount).toBe(2);
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+    });
+
+    it('flags a representative partially expanded thread fixture', () => {
+      const doc = adapter.extract(partialThreadFixture);
+
+      expect(doc.metadata.isPartiallyLoaded).toBe(true);
+      expect(doc.metadata.extractedCount).toBe(1);
+    });
+
+    it('does not flag a fully expanded thread with hovercard loaders and an inflated host count', () => {
+      const doc = adapter.extract(fullyExpandedFixture);
+
+      expect(doc.metadata.isPartiallyLoaded).toBe(false);
+      expect(doc.metadata.extractedCount).toBe(3);
     });
   });
 

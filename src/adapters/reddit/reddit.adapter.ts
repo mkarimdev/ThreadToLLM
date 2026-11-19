@@ -8,7 +8,9 @@ import { PlatformAdapter } from '../adapter.interface';
 import { THREAD_MODAL_SELECTOR } from './reddit.selectors';
 import { domToMarkdown } from './rich-text';
 
-export const COMMENT_COUNT_TOLERANCE_MARGIN = 2;
+const COMMENT_TREE_SCOPE = '#comment-tree, [id*="comment-tree"]';
+const COMMENT_LOADER_TAGS = 'faceplate-partial, shreddit-async-loader, shreddit-loading';
+const MORE_COMMENTS_LABEL = /more (?:comment|repl)/i;
 
 /**
  * Resolves the root discussion container for a given Reddit post element.
@@ -27,6 +29,95 @@ export function findThreadRoot(
 }
 
 export class RedditAdapter implements PlatformAdapter {
+  /**
+   * Detects unexpanded subtrees from elements actually rendered in the extraction root.
+   * Never infers partial state from the host comment count: that count includes removed,
+   * spam-filtered and shadowbanned comments that never produce DOM elements.
+   */
+  private detectPartialLoad(domRoot: HTMLElement | Document | Element): boolean {
+    try {
+      const candidates = Array.from(
+        domRoot.querySelectorAll(
+          `shreddit-comment-tree-action, shreddit-more-comments, more-comments, ${COMMENT_LOADER_TAGS}`
+        )
+      );
+      for (const el of candidates) {
+        if (!el.closest(COMMENT_TREE_SCOPE) || this.isGlobalPageWidget(el)) {
+          continue;
+        }
+        if (this.isCommentTreeLoader(el)) {
+          return true;
+        }
+      }
+
+      if (this.hasUnclickedPaginationButton(domRoot)) {
+        return true;
+      }
+    } catch {
+      // Ignore unsupported custom-element selectors in restricted environments.
+    }
+
+    return false;
+  }
+
+  private isCommentTreeLoader(el: Element): boolean {
+    const tagName = el.tagName.toLowerCase();
+
+    if (tagName === 'shreddit-comment-tree-action') {
+      // An empty action wrapper is inert; only a rendered trigger means comments are unexpanded.
+      return Boolean(el.querySelector(`button, [role="button"], ${COMMENT_LOADER_TAGS}`));
+    }
+    if (tagName === 'shreddit-more-comments' || tagName === 'more-comments') {
+      return true;
+    }
+
+    const src = el.getAttribute('src') || el.getAttribute('data-src') || '';
+    if (/\/comments\//i.test(src)) {
+      return true;
+    }
+
+    if (!el.closest('shreddit-comment')) {
+      return true;
+    }
+
+    if (
+      tagName === 'shreddit-loading' ||
+      tagName === 'shreddit-more-comments' ||
+      tagName === 'more-comments'
+    ) {
+      return true;
+    }
+    // Author hovercards and similar widgets are unrelated to comment expansion.
+    const bundleName = el.getAttribute('bundlename')?.toLowerCase() || '';
+    return bundleName.includes('comment') || bundleName.includes('repl');
+  }
+
+  private hasUnclickedPaginationButton(domRoot: HTMLElement | Document | Element): boolean {
+    for (const btn of Array.from(domRoot.querySelectorAll('button, [role="button"]'))) {
+      if (this.isGlobalPageWidget(btn)) {
+        continue;
+      }
+      if (!btn.closest(`${COMMENT_TREE_SCOPE}, shreddit-comment-tree-action, shreddit-comment`)) {
+        continue;
+      }
+
+      const label = `${btn.textContent || ''} ${btn.getAttribute('aria-label') || ''}`;
+      if (MORE_COMMENTS_LABEL.test(label)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private isGlobalPageWidget(el: Element): boolean {
+    return Boolean(
+      el.closest(
+        'aside, nav, header, [slot="sidebar"], [data-testid*="sidebar"], #sidebar, .sidebar, shreddit-drawer, [slot="drawer"], faceplate-drawer, [data-testid*="drawer"]'
+      )
+    );
+  }
+
   public extract(domRoot: HTMLElement | Document | Element): ThreadDocument {
     const postEl = this.findPostElement(domRoot);
     if (!postEl) {
@@ -41,6 +132,7 @@ export class RedditAdapter implements PlatformAdapter {
     const originalPost = this.extractOriginalPost(postEl);
     const comments = this.extractCommentTree(commentRoot, originalPost.author);
     const extractedCount = countComments(comments);
+    const isPartiallyLoaded = this.detectPartialLoad(commentRoot);
 
     const metadata: ThreadMetadata = {
       source: 'reddit',
@@ -48,7 +140,7 @@ export class RedditAdapter implements PlatformAdapter {
       url: this.resolveRedditUrl(postEl.getAttribute('permalink') || ''),
       author: originalPost.author,
       extractedCount,
-      isPartiallyLoaded: false,
+      isPartiallyLoaded,
     };
 
     return {
