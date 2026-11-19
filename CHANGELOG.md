@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-19
+
+### Added
+- **adapter**: flag unexpanded replies in serialized threads (#20) (9ed71bf)
+
+### Maintenance
+- **agents**: resolve retro findings on navigation and guardrails (1971ca4)
+
 ## [0.1.3] - 2026-11-17
 
 ### Fixed
